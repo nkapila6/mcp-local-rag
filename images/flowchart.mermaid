@@ -1,0 +1,23 @@
+flowchart TD
+    A[User] -->|1.Submits LLM Query| B[Language Model]
+    B -->|2.Sends Query| C[mcp-local-rag Tool]
+    
+    subgraph mcp-local-rag Processing
+    C -->|Search DuckDuckGo| D[Fetch 10 search results]
+    D -->|Fetch Embeddings| E[Embeddings from Google's MediaPipe Text Embedder]
+    E -->|Compute Similarity| F[Rank Entries Against Query]
+    F -->|Select top k results| G[Context Extraction from URL]
+    end
+    
+    G -->|Returns Markdown from HTML content| B
+    B -->|3.Generated response with context| H[Final LLM Output]
+    H -->|5.Present result to user| A
+
+    classDef default fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef process fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef input fill:#9f9,stroke:#333,stroke-width:2px;
+    classDef output fill:#ff9,stroke:#333,stroke-width:2px;
+
+    class A input;
+    class B,C process;
+    class G output;
