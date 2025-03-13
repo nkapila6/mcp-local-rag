@@ -21,7 +21,10 @@ requires = [ "hatchling",]
 build-backend = "hatchling.build"
 
 [project.scripts]
-mcp-local-rag = "mcp_local_rag:main"
+mcp-local-rag = "mcp_local_rag.main:mcp.run"
+
+[tool.setuptools.package-data]
+mcp_local_rag = ["embedder/embedder.tflite"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcp_local_rag"]
