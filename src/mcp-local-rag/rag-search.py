@@ -20,7 +20,7 @@ def start_server():
     mcp.run(transport="stdio")
 
 @mcp.tool()
-def rag_search(query: str, num_results:int=10) -> Dict:
+def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
     """
     Search the web for a given query. Give back context to the LLM
     with a RAG-like similarity sort.
@@ -28,6 +28,7 @@ def rag_search(query: str, num_results:int=10) -> Dict:
     Args:
         query (str): The query to search for.
         num_results (int): Number of results to return.
+        top_k (int): Use top "k" results for content.
 
     Returns:
         List of strings containing best search based on input query. Formatted in markdown.
@@ -35,7 +36,7 @@ def rag_search(query: str, num_results:int=10) -> Dict:
     ddgs = DDGS()
     results = ddgs.text(query, max_results=num_results) 
     scored_results = sort_by_score(add_score_to_dict(query, results))
-    top_results = scored_results[:num_results]
+    top_results = scored_results[0:top_k]
 
     # fetch content using thread pool
     md_content = fetch_all_content(top_results)
