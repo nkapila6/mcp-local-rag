@@ -31,7 +31,7 @@ def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
         top_k (int): Use top "k" results for content.
 
     Returns:
-        List of strings containing best search based on input query. Formatted in markdown.
+        Dict of strings containing best search based on input query. Formatted in markdown.
     """
     ddgs = DDGS()
     results = ddgs.text(query, max_results=num_results) 
