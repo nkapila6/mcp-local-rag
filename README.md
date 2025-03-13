@@ -8,7 +8,26 @@
 # Installation instructions
 1. You would need to install ```uv```: https://docs.astral.sh/uv/
 
-2. Clone this GitHub repository.
+## If you do not want to clone in Step 2.
+Just paste this directly into Claude config. You can find the configuration paths here: https://modelcontextprotocol.io/quickstart/user
+```json
+{
+    "mcpServers": {
+        "mcp-local-rag":{
+            "command": "uvx",
+            "args": [
+            "--python=3.10",
+            "--from",
+            "git+https://github.com/nkapila6/mcp-local-rag",
+            "mcp-local-rag"
+            ]
+        }
+    }
+}
+```
+
+## Otherwise:
+2. Clone this GitHub repository (OPTIONAL, can be skipped with above config)
 ```terminal
 git clone https://github.com/nkapila6/mcp-local-rag
 ```
@@ -23,13 +42,12 @@ git clone https://github.com/nkapila6/mcp-local-rag
         "--directory",
         "<path where this folder is located>/mcp-local-rag/",
         "run",
-        "src/mcp-local-rag/rag-search.py"
+        "src/mcp_local_rag/main.py"
       ]
     }
   }
 }
 ```
-
 # Example use
 
 ## On prompt
