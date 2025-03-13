@@ -1,1 +1,1 @@
-# mcp-raggy-search
+# local-mcp-rag
