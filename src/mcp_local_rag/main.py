@@ -15,12 +15,9 @@ from mcp.server.fastmcp import FastMCP
 mcp = FastMCP("RAG Web Search", dependencies=["duckduckgo-search", "mediapipe", 
                                   "beautifulsoup4", "requests"])
 
-PATH = "src/mcp_local_rag/embedder/embedder.tflite"
 # Dynamically locate embedder.tflite within the installed package
+# PATH = "src/mcp_local_rag/embedder/embedder.tflite"
 PATH = files('mcp_local_rag').joinpath('embedder/embedder.tflite')
-
-# def start_server():
-#     mcp.run(transport="stdio")
 
 @mcp.tool()
 def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
@@ -104,6 +101,3 @@ def fetch_all_content(results: List[Dict]) -> List[str]:
                 print(f"Request failed with exception: {e}")
         
     return content_list
-
-# if __name__ == "__main__":
-#     start_server()
