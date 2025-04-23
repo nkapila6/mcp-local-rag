@@ -42,6 +42,36 @@ except Exception as e:
     EMBEDDER = None # Handle potential initialization errors
 
 @mcp.tool()
+async def fetch_urls(urls: List[str]) -> Dict:
+    """
+    Fetches content from a list of URLs concurrently.
+
+    Args:
+        urls (List[str]): A list of URLs to fetch content from.
+
+    Returns:
+        Dict: A dictionary containing a list of fetched content, structured as {"content": [{"type": "text", "text": "..."}, ...]}.
+    """
+    content_list = []
+
+    # Create a single client session for all requests
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        tasks = [fetch_content(url, client) for url in urls]
+        fetched_contents = await asyncio.gather(*tasks, return_exceptions=True) # Use asyncio.gather
+
+    for url, content_or_exc in zip(urls, fetched_contents):
+        if isinstance(content_or_exc, Exception):
+            logging.warning(f"Request for {url} failed with exception: {content_or_exc}")
+        elif content_or_exc:
+            content_list.append({
+                "type": "text",
+                "text": content_or_exc
+            })
+        # else: content was None (handled inside fetch_content) or empty string
+
+    return { "content": content_list }
+
+@mcp.tool()
 async def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
     """
     Search the web for a given query. Give back context to the LLM
@@ -66,14 +96,10 @@ async def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
     scored_results = await add_score_to_dict(query, results) # Await the async function
     sorted_scored_results = sort_by_score(scored_results) # Sorting is likely fast enough
     top_results = sorted_scored_results[0:top_k]
+    top_urls = [site['href'] for site in top_results if site.get('href')]
 
-    # fetch content using asyncio
-    md_content = await fetch_all_content(top_results)
-
-    # formatted as dict
-    return {
-        "content": md_content
-            }
+    # fetch content using the new tool
+    return await fetch_urls(top_urls)
 
 async def add_score_to_dict(query: str, results: List[Dict]) -> List[Dict]:
     """
@@ -140,7 +166,7 @@ def sort_by_score(results: List[Dict]) -> List[Dict]:
     """Sort results by similarity score."""
     return sorted(results, key=lambda x: x['score'], reverse=True)
 
-async def fetch_content(url: str, client: httpx.AsyncClient, timeout: int = 10) -> Optional[str]: # Pass client, remove timeout from args if using client's timeout
+async def fetch_content(url: str, client: httpx.AsyncClient, timeout: int = 10, max_length: int = MAX_CONTENT_LENGTH) -> Optional[str]: # Pass client, remove timeout from args if using client's timeout
     """Fetch content from a URL with timeout using an httpx.AsyncClient instance."""
     try:
         start_time = time.time()
@@ -152,7 +178,7 @@ async def fetch_content(url: str, client: httpx.AsyncClient, timeout: int = 10) 
         content = BeautifulSoup(response.text, "html.parser").get_text(separator=' ', strip=True)
         logging.info(f"Fetched {url} in {time.time() - start_time:.2f}s")
         # Use the global constant
-        return content[:MAX_CONTENT_LENGTH]
+        return content[:max_length]
     # Catch httpx specific exceptions and general exceptions
     except httpx.RequestError as e:
         logging.warning(f"Error fetching {url} with httpx: {type(e).__name__} - {str(e)}")
@@ -160,25 +186,3 @@ async def fetch_content(url: str, client: httpx.AsyncClient, timeout: int = 10) 
     except Exception as e: # Catch other potential errors (e.g., BeautifulSoup parsing)
         logging.warning(f"An unexpected error occurred for {url}: {type(e).__name__} - {str(e)}")
         return None
-
-async def fetch_all_content(results: List[Dict]) -> List[Dict]: # Return List[Dict] consistent with previous structure
-    """Fetch content from all URLs concurrently using asyncio and httpx."""
-    urls = [site['href'] for site in results if site.get('href')]
-    content_list = []
-
-    # Create a single client session for all requests
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        tasks = [fetch_content(url, client) for url in urls]
-        fetched_contents = await asyncio.gather(*tasks, return_exceptions=True) # Use asyncio.gather
-
-    for url, content_or_exc in zip(urls, fetched_contents):
-        if isinstance(content_or_exc, Exception):
-            logging.warning(f"Request for {url} failed with exception: {content_or_exc}")
-        elif content_or_exc:
-            content_list.append({
-                "type": "text",
-                "text": content_or_exc
-            })
-        # else: content was None (handled inside fetch_content) or empty string
-
-    return content_list
