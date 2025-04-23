@@ -1,26 +1,48 @@
-from duckduckgo_search import DDGS
-from mediapipe.tasks import python
-from mediapipe.tasks.python import text
-from bs4 import BeautifulSoup
-import requests
-from concurrent.futures import ThreadPoolExecutor
-from typing import List, Dict, Optional
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import time
+import asyncio
+import logging
+from typing import List, Dict, Optional
 from importlib.resources import files
 
-# imports from mcp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import text
+from duckduckgo_search import DDGS
+from bs4 import BeautifulSoup
+import httpx
+
 # https://modelcontextprotocol.io/quickstart/server
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("RAG Web Search", dependencies=["duckduckgo-search", "mediapipe", 
-                                  "beautifulsoup4", "requests"])
+# Configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+mcp = FastMCP("RAG Web Search", dependencies=[
+    "mediapipe", 
+    "beautifulsoup4", "duckduckgo-search", "httpx"])
+
+# Global constant for content length limit
+MAX_CONTENT_LENGTH = 10_000
 
 # Dynamically locate embedder.tflite within the installed package
 # PATH = "src/mcp_local_rag/embedder/embedder.tflite"
 PATH = files('mcp_local_rag').joinpath('embedder/embedder.tflite')
 
+# Initialize TextEmbedder globally for efficiency
+try:
+    BASE_OPTIONS = python.BaseOptions(model_asset_path=PATH)
+    L2_NORMALIZE, QUANTIZE = True, False
+    OPTIONS = text.TextEmbedderOptions(
+        base_options=BASE_OPTIONS, l2_normalize=L2_NORMALIZE, quantize=QUANTIZE)
+    EMBEDDER = text.TextEmbedder.create_from_options(OPTIONS)
+except Exception as e:
+    logging.error(f"Error initializing TextEmbedder: {e}")
+    EMBEDDER = None # Handle potential initialization errors
+
 @mcp.tool()
-def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
+async def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
     """
     Search the web for a given query. Give back context to the LLM
     with a RAG-like similarity sort.
@@ -31,73 +53,132 @@ def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
         top_k (int): Use top "k" results for content.
 
     Returns:
-        Dict of strings containing best search based on input query. Formatted in markdown.
+        Dict: A dictionary containing a list of content dictionaries, structured as {"content": [{"type": "text", "text": "..."}, ...]}.
     """
     ddgs = DDGS()
-    results = ddgs.text(query, max_results=num_results) 
-    scored_results = sort_by_score(add_score_to_dict(query, results))
-    top_results = scored_results[0:top_k]
+    loop = asyncio.get_running_loop()
+    # Run synchronous ddgs.text in an executor to avoid blocking
+    results = await loop.run_in_executor(None, ddgs.text, query, num_results)
+    if not EMBEDDER:
+         return {"error": "TextEmbedder not initialized."}
 
-    # fetch content using thread pool
-    md_content = fetch_all_content(top_results)
+    # Embedding might be CPU-bound, run in executor
+    scored_results = await add_score_to_dict(query, results) # Await the async function
+    sorted_scored_results = sort_by_score(scored_results) # Sorting is likely fast enough
+    top_results = sorted_scored_results[0:top_k]
+
+    # fetch content using asyncio
+    md_content = await fetch_all_content(top_results)
 
     # formatted as dict
     return {
         "content": md_content
             }
 
-def add_score_to_dict(query: str, results: List[Dict]) -> List[Dict]:
-    """Add similarity scores to search results."""
-    base_options = python.BaseOptions(model_asset_path=PATH)
-    l2_normalize, quantize = True, False
-    options = text.TextEmbedderOptions(
-        base_options=base_options, l2_normalize=l2_normalize, quantize=quantize)
-    embedder = text.TextEmbedder.create_from_options(options)
-    query_embedding = embedder.embed(query)
+async def add_score_to_dict(query: str, results: List[Dict]) -> List[Dict]:
+    """
+    Calculates similarity scores for search results against the query and adds them
+    to the result dictionaries. Embeddings are computed concurrently.
 
-    for i in results:
-        i['score'] = text.TextEmbedder.cosine_similarity(
-                        embedder.embed(i['body']).embeddings[0],
-                        query_embedding.embeddings[0])
+    Args:
+        query (str): The search query string.
+        results (List[Dict]): A list of result dictionaries from the search provider.
+                               Each dictionary is expected to have a 'body' key for embedding.
+                               This list is modified in-place by adding a 'score' key.
 
-    return results
+    Returns:
+        List[Dict]: The original list of result dictionaries, modified in-place
+                    to include a 'score' key for each result. Results without a 'body',
+                    or those encountering errors during embedding/similarity calculation,
+                    will have a score of 0.0.
+    """
+    # EMBEDDER check is handled by the caller (rag_search)
+    loop = asyncio.get_running_loop()
+    # Run potentially CPU-bound embedding in an executor
+    try:
+        query_embedding = await loop.run_in_executor(None, EMBEDDER.embed, query)
+    except Exception as e:
+        logging.error(f"Error embedding query '{query}': {e}")
+        # If query embedding fails, cannot score anything, return results with 0 score
+        for result in results:
+            result['score'] = 0.0
+        return results
+
+    embedding_tasks = []
+    results_to_process = [] # Keep track of results that will have embeddings
+
+    for result in results:
+        if 'body' in result and result['body']:
+            # Schedule embedding task in executor
+            task = loop.run_in_executor(None, EMBEDDER.embed, result['body'])
+            embedding_tasks.append(task)
+            results_to_process.append(result)
+        else:
+            result['score'] = 0.0 # Assign default score if body is missing/empty
+
+    # Wait for all embedding tasks to complete
+    result_embeddings = await asyncio.gather(*embedding_tasks, return_exceptions=True)
+
+    # Process results and calculate scores
+    for i, result in enumerate(results_to_process):
+        embedding_or_exc = result_embeddings[i]
+        if isinstance(embedding_or_exc, Exception):
+            logging.warning(f"Error embedding body for result {result.get('href', 'N/A')}: {embedding_or_exc}")
+            result['score'] = 0.0 # Assign default score on embedding error
+        else:
+            try:
+                result['score'] = text.TextEmbedder.cosine_similarity(
+                                    embedding_or_exc.embeddings[0],
+                                    query_embedding.embeddings[0])
+            except Exception as e:
+                logging.warning(f"Error calculating similarity for result {result.get('href', 'N/A')}: {e}")
+                result['score'] = 0.0 # Assign default score on similarity calculation error
+
+    return results # Return the original list with scores updated
 
 def sort_by_score(results: List[Dict]) -> List[Dict]:
     """Sort results by similarity score."""
     return sorted(results, key=lambda x: x['score'], reverse=True)
 
-def fetch_content(url: str, timeout: int = 5) -> Optional[str]:
-    """Fetch content from a URL with timeout."""
+async def fetch_content(url: str, client: httpx.AsyncClient, timeout: int = 10) -> Optional[str]: # Pass client, remove timeout from args if using client's timeout
+    """Fetch content from a URL with timeout using an httpx.AsyncClient instance."""
     try:
         start_time = time.time()
-        response = requests.get(url, timeout=timeout)
-        response.raise_for_status()
-        content = BeautifulSoup(response.text, "html.parser").get_text()
-        print(f"Fetched {url} in {time.time() - start_time:.2f}s")
-        return content[:10000]  # limitting content to 10k
-    except requests.RequestException as e:
-        print(f"Error fetching {url}: {type(e).__name__} - {str(e)}")
+        # Use the passed httpx client
+        response = await client.get(url, timeout=timeout) # Await the get call
+        response.raise_for_status() # Check for HTTP errors
+        # response.text is a property, accessing it might implicitly await reading the body if not already done.
+        # For explicit control or large files, use await response.aread()
+        content = BeautifulSoup(response.text, "html.parser").get_text(separator=' ', strip=True)
+        logging.info(f"Fetched {url} in {time.time() - start_time:.2f}s")
+        # Use the global constant
+        return content[:MAX_CONTENT_LENGTH]
+    # Catch httpx specific exceptions and general exceptions
+    except httpx.RequestError as e:
+        logging.warning(f"Error fetching {url} with httpx: {type(e).__name__} - {str(e)}")
+        return None
+    except Exception as e: # Catch other potential errors (e.g., BeautifulSoup parsing)
+        logging.warning(f"An unexpected error occurred for {url}: {type(e).__name__} - {str(e)}")
         return None
 
-def fetch_all_content(results: List[Dict]) -> List[str]:
-    """Fetch content from all URLs using a thread pool."""
+async def fetch_all_content(results: List[Dict]) -> List[Dict]: # Return List[Dict] consistent with previous structure
+    """Fetch content from all URLs concurrently using asyncio and httpx."""
     urls = [site['href'] for site in results if site.get('href')]
-    
-    # parallelize requests
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        # submit fetch tasks to executor
-        future_to_url = {executor.submit(fetch_content, url): url for url in urls}
-        
-        content_list = []
-        for future in future_to_url:
-            try:
-                content = future.result()
-                if content:
-                    content_list.append({
-                        "type": "text",
-                        "text": content
-                    })
-            except Exception as e:
-                print(f"Request failed with exception: {e}")
-        
+    content_list = []
+
+    # Create a single client session for all requests
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        tasks = [fetch_content(url, client) for url in urls]
+        fetched_contents = await asyncio.gather(*tasks, return_exceptions=True) # Use asyncio.gather
+
+    for url, content_or_exc in zip(urls, fetched_contents):
+        if isinstance(content_or_exc, Exception):
+            logging.warning(f"Request for {url} failed with exception: {content_or_exc}")
+        elif content_or_exc:
+            content_list.append({
+                "type": "text",
+                "text": content_or_exc
+            })
+        # else: content was None (handled inside fetch_content) or empty string
+
     return content_list
