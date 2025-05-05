@@ -20,11 +20,10 @@ FROM python:3.10-slim-bookworm
 
 WORKDIR /app
 
-# COPY --from=uv /app/.venv /app/.venv
-# ENV PATH="/app/.venv/bin:$PATH"
+COPY --from=uv /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 COPY --from=uv /app /app/
-ENV UV_SYSTEM_PYTHON=1
 ENV PYTHONPATH=/app
 
 ENTRYPOINT ["mcp-local-rag"]
