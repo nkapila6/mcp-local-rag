@@ -1,5 +1,8 @@
 FROM ghcr.io/astral-sh/uv:latest AS uv
 
+# Copy the uv binary to a known location
+COPY --from=uv /uv /bin/uv
+
 WORKDIR /app
 
 COPY uv.lock /app/
