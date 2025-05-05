@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/nkapila6-mcp-local-rag-badge.png)](https://mseep.ai/app/nkapila6-mcp-local-rag)
+
 <img src='images/rag.jpeg' width='200' height='200'>
 
 # mcp-local-rag
