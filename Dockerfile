@@ -1,7 +1,7 @@
-FROM ghcr.io/astral-sh/uv:latest AS uvbase
+FROM ghcr.io/astral-sh/uv:python3.10-bookworm AS uv
 
 # Copy the uv binary to a known location
-COPY --from=uvbase /uv /bin/uv
+COPY --from=uv /uv /bin/uv
 
 WORKDIR /app
 
