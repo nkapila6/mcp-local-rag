@@ -1,7 +1,7 @@
-FROM ghcr.io/astral-sh/uv:latest AS uv
+FROM ghcr.io/astral-sh/uv:latest AS uvbase
 
 # Copy the uv binary to a known location
-COPY --from=uv /uv /bin/uv
+COPY --from=uvbase /uv /bin/uv
 
 WORKDIR /app
 
