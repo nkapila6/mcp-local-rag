@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=README.md,target=README.md \
     --mount=type=bind,source=.python-version,target=.python-version \
-    uv sync --frozen --no-dev --no-editable
+    ["uv", "sync", "--frozen", "--no-dev", "--no-editable"]
 
 ADD ./src/mcp_local_rag /app/mcp_local_rag
 
