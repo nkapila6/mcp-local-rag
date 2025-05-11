@@ -80,8 +80,8 @@ For this step, make sure you have [`uv`](https://docs.astral.sh/uv) installed: h
 
 There are 2 ways to approach this:
 
-Option 1: [Directly running via `uvx`](#directly-running-via-uvx)
-Option 2: [Clone and Run Locally](#cloning-the-repository)
+1. Option 1: [Directly running via `uvx`](#directly-running-via-uvx)
+2. Option 2: [Clone and Run Locally](#cloning-the-repository)
 
 ### Run Directly via `uvx`
 
