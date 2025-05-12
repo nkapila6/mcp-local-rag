@@ -8,6 +8,11 @@ concurrency:
 
 jobs:
   publish-docker-image:
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
