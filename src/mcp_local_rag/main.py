@@ -189,7 +189,7 @@ async def fetch_content(url: str, client: httpx.AsyncClient, timeout: int = CONT
         content = " ".join(t.strip() for t in text_nodes if t.strip()).strip()
         # Limit content length to max_length
         content = content[:max_length]
-        if "1" == os.getenv("ENABLE_SUMMARY"):
+        if "ENABLE_SUMMARY" in os.environ:
             # summarize content (if possible please summarize the content)
             data = {
                 "messages": [
