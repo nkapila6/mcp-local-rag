@@ -7,7 +7,6 @@ requires-python = ">=3.10"
 dependencies = [
  "mcp[cli]>=1.6.0",
  "mediapipe",
- "beautifulsoup4",
  "duckduckgo-search",
  "httpx",
 ]

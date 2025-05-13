@@ -10,7 +10,7 @@ from importlib.resources import files
 from mediapipe.tasks import python
 from mediapipe.tasks.python import text
 from duckduckgo_search import DDGS
-from bs4 import BeautifulSoup
+from lxml import html
 import httpx
 
 # https://modelcontextprotocol.io/quickstart/server
@@ -20,11 +20,11 @@ from mcp.server.fastmcp import FastMCP
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 mcp = FastMCP("RAG Web Search", dependencies=[
-    "mediapipe", 
-    "beautifulsoup4", "duckduckgo-search", "httpx"])
+    "mediapipe", "duckduckgo-search", "httpx"])
 
 # Global constant for content length limit
-MAX_CONTENT_LENGTH = 10_000
+CONTENT_MAX_LENGTH = 10_000
+CONTENT_FETCH_TIMEOUT = 30
 
 # Dynamically locate embedder.tflite within the installed package
 # PATH = "src/mcp_local_rag/embedder/embedder.tflite"
@@ -41,8 +41,9 @@ except Exception as e:
     logging.error(f"Error initializing TextEmbedder: {e}")
     EMBEDDER = None # Handle potential initialization errors
 
+
 @mcp.tool()
-async def fetch_urls(urls: List[str]) -> Dict:
+async def fetch_urls(urls: List[str]) -> List:
     """
     Fetches content from a list of URLs concurrently.
 
@@ -50,10 +51,9 @@ async def fetch_urls(urls: List[str]) -> Dict:
         urls (List[str]): A list of URLs to fetch content from.
 
     Returns:
-        Dict: A dictionary containing a list of fetched content, structured as {"content": [{"type": "text", "text": "..."}, ...]}.
+        List: A list of dictionaries containing the fetched content.
     """
     content_list = []
-
     # Create a single client session for all requests
     async with httpx.AsyncClient(follow_redirects=True) as client:
         tasks = [fetch_content(url, client) for url in urls]
@@ -65,11 +65,12 @@ async def fetch_urls(urls: List[str]) -> Dict:
         elif content_or_exc:
             content_list.append({
                 "type": "text",
+                "url": url,
                 "text": content_or_exc
             })
         # else: content was None (handled inside fetch_content) or empty string
 
-    return { "content": content_list }
+    return content_list
 
 @mcp.tool()
 async def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
@@ -83,7 +84,7 @@ async def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
         top_k (int): Use top "k" results for content.
 
     Returns:
-        Dict: A dictionary containing a list of content dictionaries, structured as {"content": [{"type": "text", "text": "..."}, ...]}.
+        List[Dict]: A list of dictionaries containing the fetched content.
     """
     ddgs = DDGS()
     loop = asyncio.get_running_loop()
@@ -166,23 +167,34 @@ def sort_by_score(results: List[Dict]) -> List[Dict]:
     """Sort results by similarity score."""
     return sorted(results, key=lambda x: x['score'], reverse=True)
 
-async def fetch_content(url: str, client: httpx.AsyncClient, timeout: int = 10, max_length: int = MAX_CONTENT_LENGTH) -> Optional[str]: # Pass client, remove timeout from args if using client's timeout
+
+async def fetch_content(url: str, client: httpx.AsyncClient, timeout: int = CONTENT_FETCH_TIMEOUT, max_length: int = CONTENT_MAX_LENGTH) -> Optional[str]:
     """Fetch content from a URL with timeout using an httpx.AsyncClient instance."""
     try:
         start_time = time.time()
         # Use the passed httpx client
-        response = await client.get(url, timeout=timeout) # Await the get call
+        headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        }
+        response = await client.get(url, timeout=timeout, headers=headers) # Await the get call
         response.raise_for_status() # Check for HTTP errors
         # response.text is a property, accessing it might implicitly await reading the body if not already done.
         # For explicit control or large files, use await response.aread()
-        content = BeautifulSoup(response.text, "html.parser").get_text(separator=' ', strip=True)
+        # content = BeautifulSoup(response.text, "html.parser").get_text(separator=' ', strip=True) # Old line
+        parsed_html = html.fromstring(response.text)
+        # Extract text nodes, excluding those within script and style tags
+        text_nodes = parsed_html.xpath("//text()[not(ancestor::script or ancestor::style)]")
+        # Join stripped text nodes with a single space, and strip overall result
+        content = " ".join(t.strip() for t in text_nodes if t.strip()).strip()
+        # Limit content length to max_length
+        content = content[:max_length]
+        # summarize content (if possible please summarize the content)
         logging.info(f"Fetched {url} in {time.time() - start_time:.2f}s")
-        # Use the global constant
-        return content[:max_length]
+        return content
     # Catch httpx specific exceptions and general exceptions
     except httpx.RequestError as e:
         logging.warning(f"Error fetching {url} with httpx: {type(e).__name__} - {str(e)}")
         return None
-    except Exception as e: # Catch other potential errors (e.g., BeautifulSoup parsing)
+    except Exception as e: # Catch other potential errors (e.g., lxml parsing)
         logging.warning(f"An unexpected error occurred for {url}: {type(e).__name__} - {str(e)}")
         return None
