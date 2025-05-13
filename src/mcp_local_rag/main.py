@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import time
 import asyncio
 import logging
@@ -23,7 +24,7 @@ mcp = FastMCP("RAG Web Search", dependencies=[
     "mediapipe", "duckduckgo-search", "httpx"])
 
 # Global constant for content length limit
-CONTENT_MAX_LENGTH = 10_000
+CONTENT_MAX_LENGTH = 16_000
 CONTENT_FETCH_TIMEOUT = 30
 
 # Dynamically locate embedder.tflite within the installed package
@@ -188,7 +189,50 @@ async def fetch_content(url: str, client: httpx.AsyncClient, timeout: int = CONT
         content = " ".join(t.strip() for t in text_nodes if t.strip()).strip()
         # Limit content length to max_length
         content = content[:max_length]
-        # summarize content (if possible please summarize the content)
+        if "1" == os.getenv("ENABLE_SUMMARY"):
+            # summarize content (if possible please summarize the content)
+            data = {
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": \
+    """
+    ### Summary Rules:
+
+    Please follow these guidelines to create a structured summary of the provided "Web Content", aiming for generality and effectiveness:
+
+    1.  Core Extraction: Read the entire text to identify the core theme, main viewpoints, and key information points. Condense these into several summary dimensions (typically 3-5, adjustable based on content complexity).
+
+    2.  Completeness and Accuracy: Strive for a comprehensive and accurate summary of the main content, retaining core arguments, important facts, and key details. Avoid oversimplification or omission of important information. Ensure accuracy for specific information like data, percentages, and times.
+
+    3.  Hierarchical Structure: It is recommended to use a "General-Specific-General" structure:
+        *   Overall Overview: Briefly explain the webpage's theme, core content, or main function/purpose.
+        *   Detailed Points: Clearly list key information and main viewpoints around the core theme or different aspects/modules. For example: "Core Theme 1: [Relevant information and viewpoints]".
+        *   Overall Induction: Summarize the overall situation of the webpage content, main conclusions, or potential trends.
+
+    4.  Emphasis on Key Information: Pay special attention to retaining definitions, key terms, important data (if applicable), examples, and conclusions from the original text. If the content is time-sensitive and explicitly mentioned in the original text, it should be reflected.
+
+    5.  Balance and Readability: While maintaining information density, ensure the summary is concise, well-organized, and easy to read. Key information and core viewpoints should be adequately represented.
+
+    6.  Language Style: Use neutral, objective, concise, and professional language. Avoid redundant expressions and unnecessary complex terminology to ensure clear communication of information.
+    """
+                    },
+                    {
+                        "role": "user",
+                        "content": content
+                    }
+                ],
+                "model": "THUDM/GLM-4-9B-0414",
+                "temperature": 0.5,
+                "stream": False
+            }
+            # Make a POST request to the summarization API
+            response = await httpx.AsyncClient(timeout=CONTENT_FETCH_TIMEOUT, follow_redirects=True).post(
+                "https://proxy-ai.doocs.org/v1/chat/completions", json=data)
+            response.raise_for_status()  # Check for HTTP errors
+            # Extract the summary from the response
+            summary = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
+            if summary: content = summary
         logging.info(f"Fetched {url} in {time.time() - start_time:.2f}s")
         return content
     # Catch httpx specific exceptions and general exceptions
