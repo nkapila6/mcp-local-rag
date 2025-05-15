@@ -72,7 +72,7 @@ def fetch_content(url: str, timeout: int = 5) -> Optional[str]:
         start_time = time.time()
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
-        content = BeautifulSoup(response.text, "html.parser").get_text()
+        content = BeautifulSoup(response.text, "html.parser").get_text(separator=" ", strip=True)
         print(f"Fetched {url} in {time.time() - start_time:.2f}s")
         return content[:10000]  # limitting content to 10k
     except requests.RequestException as e:
