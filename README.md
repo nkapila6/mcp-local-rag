@@ -35,6 +35,7 @@ flowchart TD
 <!-- omit from toc -->
 # Table of Contents
 - [Installation](#installation)
+  - [Installing via Smithery](#installing-via-smithery)
   - [Using Docker (recommended)](#using-docker-recommended)
   - [Using Python + uv](#using-python--uv)
     - [Run Directly via `uvx`](#run-directly-via-uvx)
@@ -49,6 +50,14 @@ flowchart TD
 ---
 
 # Installation
+
+## Installing via Smithery
+
+To install mcp-local-rag | local RAG-like web search for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@nkapila6/mcp-local-rag):
+
+```bash
+npx -y @smithery/cli install @nkapila6/mcp-local-rag --client claude
+```
 
 ## Using Docker (recommended)
 
