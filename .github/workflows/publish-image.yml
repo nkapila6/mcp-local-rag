@@ -22,11 +22,17 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Convert Repository name to lower case
         id: lowercase
         run: echo "REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Build the MCP Docker Image
-        run: |
-          docker build . --tag ghcr.io/${{ env.REPO }}
-          docker run ghcr.io/${{ env.REPO }}:latest
-          docker push ghcr.io/${{ env.REPO }}:latest
+        run: docker build . --tag ghcr.io/${{ env.REPO }}
+
+      - name: Run the container
+        run: docker run ghcr.io/${{ env.REPO }}:latest
+
+      - name: Publish to GitHub Container Registry
+        if: success()
+        run: docker push ghcr.io/${{ env.REPO }}:latest
