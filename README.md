@@ -1,11 +1,9 @@
-[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/nkapila6-mcp-local-rag-badge.png)](https://mseep.ai/app/nkapila6-mcp-local-rag)
-
-<img src='images/rag.jpeg' width='200' height='200'>
+<a href='https://github.com/nkapila6/mcp-local-rag/'><img src='images/rag.jpeg' width='200' height='200'></a>
 
 # mcp-local-rag
 "primitive" RAG-like web search model context protocol (MCP) server that runs locally. ✨ no APIs ✨ 
 
-<img src='images/flowchart.png' width='1000' height='500'>
+<img src='images/flowchart.png' width='1000' height='auto'>
 
 # Installation instructions
 1. You would need to install ```uv```: https://docs.astral.sh/uv/
@@ -50,6 +48,10 @@ git clone https://github.com/nkapila6/mcp-local-rag
   }
 }
 ```
+
+# Security audits
+<a href='https://mseep.ai/app/nkapila6-mcp-local-rag'><img src='https://mseep.net/pr/nkapila6-mcp-local-rag-badge.png' width='auto' height='200'></a>
+
 # Example use
 
 ## On prompt
