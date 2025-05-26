@@ -8,11 +8,10 @@ from typing import List, Dict, Optional
 import time
 from importlib.resources import files
 
-# imports from mcp
-# https://modelcontextprotocol.io/quickstart/server
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
-mcp = FastMCP("RAG Web Search", dependencies=["duckduckgo-search", "mediapipe", 
+mcp = FastMCP("RAG Web Search. Can perform Web Searches.", 
+              dependencies=["duckduckgo-search", "mediapipe", 
                                   "beautifulsoup4", "requests"])
 
 # Dynamically locate embedder.tflite within the installed package
@@ -101,3 +100,6 @@ def fetch_all_content(results: List[Dict]) -> List[str]:
                 print(f"Request failed with exception: {e}")
         
     return content_list
+
+if __name__ == "__main__":
+    mcp.run()
