@@ -31,24 +31,6 @@ flowchart TD
     class G output;
 ```
 
----
-
-<!-- omit from toc -->
-# Table of Contents
-- [Installation](#installation)
-  - [Using Python + uv](#using-python--uv)
-    - [Run Directly via `uvx`](#run-directly-via-uvx)
-    - [Clone and Run Locally](#clone-and-run-locally)
-  - [Using Docker](#using-docker)
-- [Example use](#example-use)
-  - [Prompt](#prompt)
-  - [Result](#result)
-- [🛠️ Contributing](#️-contributing)
-- [📝 License](#-license)
-
-
----
-
 # Installation
 Locate your MCP config path [here](https://modelcontextprotocol.io/quickstart/user) or check your MCP client settings. 
 
