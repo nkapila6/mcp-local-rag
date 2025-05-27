@@ -34,17 +34,9 @@ flowchart TD
 # Installation
 Locate your MCP config path [here](https://modelcontextprotocol.io/quickstart/user) or check your MCP client settings. 
 
-## Using Python + uv
-For this step, make sure you have [`uv`](https://docs.astral.sh/uv) installed: https://docs.astral.sh/uv/.
-
-There are 2 ways to approach this:
-
-1. Option 1: [Directly running via `uvx`](#directly-running-via-uvx)
-2. Option 2: [Clone and Run Locally](#cloning-the-repository)
-
 ### Run Directly via `uvx`
-This is the easiest and quickest method. Add the following to your MCP config:<br>
-
+This is the easiest and quickest method. You need to install [uv](https://docs.astral.sh/uv/) for this to work. <br>
+Add this to your MCP server configuration:
 ```json
 {
   "mcpServers": {
@@ -61,35 +53,9 @@ This is the easiest and quickest method. Add the following to your MCP config:<b
 }
 ```
 
-### Clone and Run Locally
-1. Clone this GitHub repository
-
-```bash
-git clone https://github.com/nkapila6/mcp-local-rag
-```
-
-2. Add the following to your MCP Server configuration.
-
-```json
-{
-  "mcpServers": {
-    "mcp-local-rag": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "<path where this folder is located>/mcp-local-rag/",
-        "run",
-        "src/mcp_local_rag/main.py"
-      ]
-    }
-  }
-}
-```
-
-## Using Docker
+### Using Docker (recommended)
 Ensure you have [Docker](https://www.docker.com) installed.<br>
 Add this to your MCP server configuration:
-
 ```json
 {
   "mcpServers": {
