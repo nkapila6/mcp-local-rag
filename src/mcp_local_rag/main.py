@@ -90,7 +90,7 @@ async def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
     ddgs = DDGS()
     loop = asyncio.get_running_loop()
     # Run synchronous ddgs.text in an executor to avoid blocking
-    results = await loop.run_in_executor(None, ddgs.text, query, num_results)
+    results = await loop.run_in_executor(None, ddgs.text, query, min(num_results, 20))
     if not EMBEDDER:
          return {"error": "TextEmbedder not initialized."}
 
@@ -222,8 +222,8 @@ async def fetch_content(url: str, client: httpx.AsyncClient, timeout: int = CONT
                         "content": content
                     }
                 ],
-                "model": "THUDM/GLM-4-9B-0414",
-                "temperature": 0.5,
+                "model": "deepseek/deepseek-v3-base:free",
+                "temperature": 1.0,
                 "stream": False
             }
             # Make a POST request to the summarization API
