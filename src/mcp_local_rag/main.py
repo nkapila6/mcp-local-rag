@@ -196,33 +196,34 @@ async def fetch_content(url: str, client: httpx.AsyncClient, timeout: int = CONT
                     {
                         "role": "system",
                         "content": \
-    """
-    ### Summary Rules:
+"""
+/no_think
+### Summary Rules:
 
-    Please follow these guidelines to create a structured summary of the provided "Web Content", aiming for generality and effectiveness:
+Please follow these guidelines to create a structured summary of the provided "Web Content", aiming for generality and effectiveness:
 
-    1.  Core Extraction: Read the entire text to identify the core theme, main viewpoints, and key information points. Condense these into several summary dimensions (typically 3-5, adjustable based on content complexity).
+1.  Core Extraction: Read the entire text to identify the core theme, main viewpoints, and key information points. Condense these into several summary dimensions (typically 3-5, adjustable based on content complexity).
 
-    2.  Completeness and Accuracy: Strive for a comprehensive and accurate summary of the main content, retaining core arguments, important facts, and key details. Avoid oversimplification or omission of important information. Ensure accuracy for specific information like data, percentages, and times.
+2.  Completeness and Accuracy: Strive for a comprehensive and accurate summary of the main content, retaining core arguments, important facts, and key details. Avoid oversimplification or omission of important information. Ensure accuracy for specific information like data, percentages, and times.
 
-    3.  Hierarchical Structure: It is recommended to use a "General-Specific-General" structure:
-        *   Overall Overview: Briefly explain the webpage's theme, core content, or main function/purpose.
-        *   Detailed Points: Clearly list key information and main viewpoints around the core theme or different aspects/modules. For example: "Core Theme 1: [Relevant information and viewpoints]".
-        *   Overall Induction: Summarize the overall situation of the webpage content, main conclusions, or potential trends.
+3.  Hierarchical Structure: It is recommended to use a "General-Specific-General" structure:
+    *   Overall Overview: Briefly explain the webpage's theme, core content, or main function/purpose.
+    *   Detailed Points: Clearly list key information and main viewpoints around the core theme or different aspects/modules. For example: "Core Theme 1: [Relevant information and viewpoints]".
+    *   Overall Induction: Summarize the overall situation of the webpage content, main conclusions, or potential trends.
 
-    4.  Emphasis on Key Information: Pay special attention to retaining definitions, key terms, important data (if applicable), examples, and conclusions from the original text. If the content is time-sensitive and explicitly mentioned in the original text, it should be reflected.
+4.  Emphasis on Key Information: Pay special attention to retaining definitions, key terms, important data (if applicable), examples, and conclusions from the original text. If the content is time-sensitive and explicitly mentioned in the original text, it should be reflected.
 
-    5.  Balance and Readability: While maintaining information density, ensure the summary is concise, well-organized, and easy to read. Key information and core viewpoints should be adequately represented.
+5.  Balance and Readability: While maintaining information density, ensure the summary is concise, well-organized, and easy to read. Key information and core viewpoints should be adequately represented.
 
-    6.  Language Style: Use neutral, objective, concise, and professional language. Avoid redundant expressions and unnecessary complex terminology to ensure clear communication of information.
-    """
+6.  Language Style: Use neutral, objective, concise, and professional language. Avoid redundant expressions and unnecessary complex terminology to ensure clear communication of information.
+"""
                     },
                     {
                         "role": "user",
                         "content": content
                     }
                 ],
-                "model": "deepseek/deepseek-v3-base:free",
+                "model": "qwen/qwen3-32b:free",
                 "temperature": 1.0,
                 "stream": False
             }
