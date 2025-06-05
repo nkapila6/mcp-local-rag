@@ -3,7 +3,7 @@ name = "mcp-local-rag"
 version = "0.1.0"
 description = "MCP \"server\" that locally performs a RAG search on your input query."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = "~=3.10"
 dependencies = [
  "aiohttp>=3.11.15",
  "beautifulsoup4>=4.13.3",
@@ -12,19 +12,17 @@ dependencies = [
  "mediapipe>=0.10.21",
  "requests>=2.32.3",
 ]
+
 [[project.authors]]
 name = "Nikhil Kapila"
 email = "info@nkapila.me"
 
 [build-system]
-requires = [ "hatchling",]
+requires = [ "hatchling"]
 build-backend = "hatchling.build"
 
 [project.scripts]
 mcp-local-rag = "mcp_local_rag.main:mcp.run"
 
-[tool.setuptools.package-data]
-mcp_local_rag = ["embedder/embedder.tflite"]
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/mcp_local_rag"]
+[tool.hatch.build.targets.sdist]
+include = ["embedder/*", "utils/*"]
