@@ -1,6 +1,6 @@
 version = 1
 revision = 2
-requires-python = ">=3.10, <4"
+requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.13' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and sys_platform == 'darwin'",
@@ -405,17 +405,17 @@ wheels = [
 ]
 
 [[package]]
-name = "duckduckgo-search"
-version = "8.0.2"
+name = "ddgs"
+version = "9.4.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "lxml" },
     { name = "primp" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/c0/e18c2148d33a9d87f6a0cc00acba30b4e547be0f8cb85ccb313a6e8fbac7/duckduckgo_search-8.0.2.tar.gz", hash = "sha256:3109a99967b29cab8862823bbe320d140d5c792415de851b9d6288de2311b3ec", size = 21807, upload-time = "2025-05-15T08:43:25.311Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a7/36/23cf38e968260fdcc0068306136ac4ba5a9ceb0b4cde2ce7d70b8b90091b/ddgs-9.4.3.tar.gz", hash = "sha256:476646042ae8002c06e52c5be578386efbe8af54d7e86c3eb063fa6110eb5aa8", size = 31227, upload-time = "2025-07-24T01:26:44.856Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/6c/e36d22e76f4aa4e1ea7ea9b443bd49b5ffd2f13d430840f47e35284f797a/duckduckgo_search-8.0.2-py3-none-any.whl", hash = "sha256:b5ff8b6b8f169b8e1b15a788a5749aa900ebcefd6e1ab485787582f8d5b4f1ef", size = 18184, upload-time = "2025-05-15T08:43:23.713Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/56/4805b11d2d8ba44bf381bb0971fe14dc0d081e81702103fb87dcd211bc88/ddgs-9.4.3-py3-none-any.whl", hash = "sha256:bb929f5d891745f5113a3bba9a3b8ec2713ff67afb82d97dcffe4695f61c9cc9", size = 34976, upload-time = "2025-07-24T01:26:43.571Z" },
 ]
 
 [[package]]
@@ -927,7 +927,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "beautifulsoup4" },
-    { name = "duckduckgo-search" },
+    { name = "ddgs" },
     { name = "fastmcp" },
     { name = "mediapipe" },
     { name = "requests" },
@@ -937,7 +937,7 @@ dependencies = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.11.15" },
     { name = "beautifulsoup4", specifier = ">=4.13.3" },
-    { name = "duckduckgo-search", specifier = ">=8.0.2" },
+    { name = "ddgs", specifier = ">=9.4.0" },
     { name = "fastmcp", specifier = ">=2.5.1" },
     { name = "mediapipe", specifier = ">=0.10.21" },
     { name = "requests", specifier = ">=2.32.3" },

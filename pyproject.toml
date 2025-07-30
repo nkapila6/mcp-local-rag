@@ -3,11 +3,11 @@ name = "mcp-local-rag"
 version = "0.1.0"
 description = "MCP \"server\" that locally performs a RAG search on your input query."
 readme = "README.md"
-requires-python = "~=3.10"
+requires-python = ">=3.10"
 dependencies = [
  "aiohttp>=3.11.15",
  "beautifulsoup4>=4.13.3",
- "duckduckgo-search>=8.0.2",
+ "ddgs>=9.4.0",
  "fastmcp>=2.5.1",
  "mediapipe>=0.10.21",
  "requests>=2.32.3",
