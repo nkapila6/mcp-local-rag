@@ -1,4 +1,4 @@
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from mediapipe.tasks.python import text
 
 from typing import List, Dict
