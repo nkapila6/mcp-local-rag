@@ -4,6 +4,8 @@
 # mcp-local-rag
 "primitive" RAG-like web search model context protocol (MCP) server that runs locally. ✨ no APIs ✨
 
+[![MCPHub.com Badge](https://mcphub.com/api/mcp-servers/nkapila6/mcp-local-rag/badge)](https://mcphub.com/mcp-servers/nkapila6/mcp-local-rag)
+
 ```mermaid
 %%{init: {'theme': 'base'}}%%
 flowchart TD
