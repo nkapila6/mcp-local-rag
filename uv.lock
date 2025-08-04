@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.13' and sys_platform == 'darwin'",
@@ -486,16 +486,16 @@ wheels = [
 
 [[package]]
 name = "ddgs"
-version = "9.4.3"
+version = "9.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "lxml" },
     { name = "primp" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a7/36/23cf38e968260fdcc0068306136ac4ba5a9ceb0b4cde2ce7d70b8b90091b/ddgs-9.4.3.tar.gz", hash = "sha256:476646042ae8002c06e52c5be578386efbe8af54d7e86c3eb063fa6110eb5aa8", size = 31227, upload-time = "2025-07-24T01:26:44.856Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/7d/d0929e3a8f40d977fb6423fb7de80afd513ffacc3d7abf071bcb4e227fc0/ddgs-9.5.1.tar.gz", hash = "sha256:cfb721c1191fe30df648d62564c2acfdcb5035adc9f2ed7985b5c4ef8adb733e", size = 32606, upload-time = "2025-08-01T10:10:00.49Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b1/56/4805b11d2d8ba44bf381bb0971fe14dc0d081e81702103fb87dcd211bc88/ddgs-9.4.3-py3-none-any.whl", hash = "sha256:bb929f5d891745f5113a3bba9a3b8ec2713ff67afb82d97dcffe4695f61c9cc9", size = 34976, upload-time = "2025-07-24T01:26:43.571Z" },
+    { url = "https://files.pythonhosted.org/packages/a3/0a/ecb484ed63f6c3b7444294e7736061b0feaef472feac951924717dbc9156/ddgs-9.5.1-py3-none-any.whl", hash = "sha256:59467b29d92a781bf3aa22fb1bea613c7f8280a0760b4033610f787b472b4109", size = 36342, upload-time = "2025-08-01T10:09:59.582Z" },
 ]
 
 [[package]]
