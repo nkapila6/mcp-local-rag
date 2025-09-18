@@ -1,0 +1,11 @@
+{
+  "entrypoint": "src/mcp_local_rag/main.py",
+  "environment": {
+    "dependencies": [
+      "duckduckgo-search",
+      "mediapipe",
+      "beautifulsoup4",
+      "requests"
+    ]
+  }
+}

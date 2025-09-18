@@ -9,10 +9,8 @@ from .utils.tools import sort_by_score
 
 from fastmcp import FastMCP
 
-mcp = FastMCP("RAG Web Search. Can perform Web Searches.", 
-              dependencies=["duckduckgo-search", "mediapipe", 
-                                  "beautifulsoup4", "requests"])
-    
+mcp = FastMCP("RAG Web Search. Can perform Web Searches.")
+
 @mcp.tool()
 def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
     """
