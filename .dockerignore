@@ -29,6 +29,5 @@ dist/
 build/
 *.egg-info/
 
-.vscode/
 images/
 LICENSE
