@@ -1,0 +1,33 @@
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python/
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.mypy_cache/
+.pytest_cache/
+htmlcov/
+.nox/
+
+# IDE and OS specific
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*~
+.git/
+.gitignore
+
+# Build and distribution
+dist/
+build/
+*.egg-info/
+
+images/
+LICENSE
