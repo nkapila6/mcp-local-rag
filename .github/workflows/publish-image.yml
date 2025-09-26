@@ -31,7 +31,7 @@ jobs:
         run: echo "REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Build the MCP Docker Image
-        run: docker build . --tag ghcr.io/${{ env.REPO }} --label io.modelcontextprotocol.server.name="io.github.nkapila6/mcp-local-rag"
+        run: docker build . --tag ghcr.io/${{ env.REPO }}:1.0.0 --label io.modelcontextprotocol.server.name="io.github.nkapila6/mcp-local-rag"
 
       - name: Run the container
         run: docker run ghcr.io/${{ env.REPO }}:latest
