@@ -1,8 +1,21 @@
 <a href='https://github.com/nkapila6/mcp-local-rag/'><img src='images/rag.jpeg' width='200' height='200'></a>
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nkapila6/mcp-local-rag)
+
 <!-- omit from toc -->
 # mcp-local-rag
 "primitive" RAG-like web search model context protocol (MCP) server that runs locally. ✨ no APIs ✨
+
+- [Installation](#installation)
+    - [Run Directly via `uvx`](#run-directly-via-uvx)
+    - [Using Docker (recommended)](#using-docker-recommended)
+- [Security audits](#security-audits)
+- [MCP Clients](#mcp-clients)
+- [Examples on Claude Desktop](#examples-on-claude-desktop)
+  - [Result](#result)
+- [Contributing](#contributing)
+- [License](#license)
+
 
 ```mermaid
 %%{init: {'theme': 'base'}}%%
