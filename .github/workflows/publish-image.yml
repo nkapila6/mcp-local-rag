@@ -32,12 +32,14 @@ jobs:
         run: echo "REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Build the MCP Docker Image
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           docker build . \
             --tag ghcr.io/${{ env.REPO }}:${{ github.ref_name }} \
             --label io.modelcontextprotocol.server.name="io.github.${{ github.repository }}"
 
       - name: Run the container
+        if: success()
         run: docker run ghcr.io/${{ env.REPO }}:latest
 
       - name: Publish to GitHub Container Registry
