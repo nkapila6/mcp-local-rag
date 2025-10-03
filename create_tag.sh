@@ -64,7 +64,7 @@ if [[ "$1" == "-c" ]]; then
 	get_tag_name
 
 	# Run the command to create the tag for the specified commit
-	git tag "$tag_name" "$full_commit_hash"
+	git tag "$tag_name" "$commit_hash"
 
 else
 	# If the -c flag is not used, list all previous Git tags
