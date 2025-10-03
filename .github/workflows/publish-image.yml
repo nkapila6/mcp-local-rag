@@ -36,12 +36,12 @@ jobs:
         run: |
           docker build . \
             --tag ghcr.io/${{ env.REPO }}:${{ github.ref_name }} \
-            --label io.modelcontextprotocol.server.name="io.github.${{ github.repository }}"
+            --label io.modelcontextprotocol.server.name="io.github.${{ env.REPO }}"
 
       - name: Run the container
         if: success()
-        run: docker run ghcr.io/${{ env.REPO }}:latest
+        run: docker run ghcr.io/${{ env.REPO }}:{{ github.ref_name }}
 
       - name: Publish to GitHub Container Registry
         if: success()
-        run: docker push ghcr.io/${{ env.REPO }}:latest
+        run: docker push ghcr.io/${{ env.REPO }}:{{ github.ref_name }}
