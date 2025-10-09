@@ -81,7 +81,5 @@ fi
 # Push the tag to the remote repository
 # git push origin "$tag_name" | gum spin --spinner points --title "Pushing the tag..." --spinner.foreground="#34A853"
 git push origin "$tag_name" --progress
-# git push origin v0.2.16 --progress 2>&1 | pv -l -s 10 -N "Pushing the tag..." > /dev/null
-
 # Print a success message
 echo -e "\e[32mTag '$tag_name' created and pushed successfully.\e[0m"
