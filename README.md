@@ -114,6 +114,11 @@ In the example, have asked it about Google's latest Gemma models released yester
 
 <img src='images/mcp_result.png'>
 
+## Buy Me A Coffee
+If the software I've built has been helpful to you. Please do buy me a coffee, would really appreciate it! 😄
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/X8X51MK4A1)
+
 # Contributing
 Have ideas or want to improve this project? Issues and pull requests are welcome!
 
