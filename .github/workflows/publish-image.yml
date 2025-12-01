@@ -40,7 +40,7 @@ jobs:
 
       - name: Run the container
         if: success()
-        run: docker run ghcr.io/${{ env.REPO }}:{{ github.ref_name }}
+        run: docker run ghcr.io/${{ env.REPO }}:${{ github.ref_name }}
 
       - name: Publish to GitHub Container Registry
         if: success()
