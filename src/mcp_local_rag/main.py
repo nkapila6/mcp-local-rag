@@ -1,11 +1,4 @@
-from ddgs import DDGS
-from mediapipe.tasks.python import text
-
 from typing import List, Dict
-from importlib.resources import files
-
-from .utils.fetch import fetch_embedder, fetch_all_content, get_path_str
-from .utils.tools import sort_by_score
 
 from fastmcp import FastMCP
 
@@ -25,6 +18,11 @@ def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
     Returns:
         Dict of strings containing best search based on input query. Formatted in markdown.
     """
+    # Import heavy dependencies only when tool is invoked
+    from ddgs import DDGS
+    from .utils.fetch import fetch_all_content
+    from .utils.tools import sort_by_score
+    
     ddgs = DDGS()
     results = ddgs.text(query, max_results=num_results) 
     scored_results = sort_by_score(add_score_to_dict(query, results))
@@ -40,7 +38,11 @@ def rag_search(query: str, num_results:int=10, top_k:int=5) -> Dict:
     
 def add_score_to_dict(query: str, results: List[Dict]) -> List[Dict]:
     """Add similarity scores to search results."""
-
+    # Import heavy dependencies only when needed (slow import!)
+    from importlib.resources import files
+    from mediapipe.tasks.python import text
+    from .utils.fetch import fetch_embedder, get_path_str
+    
     path = get_path_str(files('mcp_local_rag.embedder').joinpath('embedder.tflite'))
     embedder = fetch_embedder(path)
     query_embedding = embedder.embed(query)
