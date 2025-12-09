@@ -7,3 +7,4 @@
 Dockerfile linguist-detectable=false
 *.mermaid linguist-detectable=false
 *.sh linguist-detectable=false
+.envrc linguist-detectable=false
