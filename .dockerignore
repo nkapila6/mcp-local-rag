@@ -18,11 +18,13 @@ htmlcov/
 # IDE and OS specific
 .vscode/
 .idea/
+.devcontainer/
 .DS_Store
 *.swp
 *~
 .git/
 .gitignore
+.gitattributes
 
 # Build and distribution
 dist/
@@ -31,3 +33,6 @@ build/
 
 images/
 LICENSE
+.github/
+.envrc
+*.sh
