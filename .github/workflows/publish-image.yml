@@ -36,6 +36,7 @@ jobs:
         run: |
           docker build . \
             --tag ghcr.io/${{ env.REPO }}:${{ github.ref_name }} \
+            --tag ghcr.io/${{ env.REPO }}:latest \
             --label io.modelcontextprotocol.server.name="io.github.${{ env.REPO }}"
 
       - name: Run the container
