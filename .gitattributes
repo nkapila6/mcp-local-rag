@@ -1,6 +1,6 @@
 *.tflite filter=lfs diff=lfs merge=lfs -text
 *.png filter=lfs diff=lfs merge=lfs -text
-*.jp[e]g filter=lfs diff=lfs merge=lfs -text
+*.jp?g filter=lfs diff=lfs merge=lfs -text
 
 # GitHub Linguist Configuration
 *.py linguist-detectable=true
