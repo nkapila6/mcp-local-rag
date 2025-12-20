@@ -1,4 +1,4 @@
-name: publish
+name: Publish MCP Server to GitHub Container Registry
 
 on:
   # Runs on pushes targeting the default branch
@@ -12,14 +12,22 @@ concurrency:
 
 jobs:
   publish-docker-image:
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
       attestations: write
       id-token: write
-    runs-on: ubuntu-latest
+
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}
+
     steps:
       - uses: actions/checkout@v6
+
+      - name: Normalize image name
+        run: echo "IMAGE=${IMAGE,,}" >> $GITHUB_ENV
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -27,22 +35,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Convert Repository name to lower case
-        id: lowercase
-        run: echo "REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build the MCP Docker Image
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          docker build . \
-            --tag ghcr.io/${{ env.REPO }}:${{ github.ref_name }} \
-            --tag ghcr.io/${{ env.REPO }}:latest \
-            --label io.modelcontextprotocol.server.name="io.github.${{ env.REPO }}"
-
-      - name: Run the container
-        if: success()
-        run: docker run ghcr.io/${{ env.REPO }}:${{ github.ref_name }}
-
-      - name: Publish to GitHub Container Registry
-        if: success()
-        run: docker push ghcr.io/${{ env.REPO }}:${{ github.ref_name }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.IMAGE }}:${{ github.ref_name }}
+            ${{ env.IMAGE }}:latest
+          labels: |
+            io.modelcontextprotocol.server.name="io.github.${{ github.repository }}"
+          cache-from: type=ghs
+          cache-to: type=gha,mode=max
