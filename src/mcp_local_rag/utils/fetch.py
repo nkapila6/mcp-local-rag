@@ -43,7 +43,7 @@ def fetch_content(url: str, timeout: int = 5) -> Optional[str]:
         print(f"Error fetching {url}: {type(e).__name__} - {str(e)}")
         return None
 
-def fetch_all_content(results: List[Dict]) -> List[str]:
+def fetch_all_content(results: List[Dict], include_urls:bool=True) -> List[str]:
     """Fetch content from all URLs using a thread pool."""
     urls = [site['href'] for site in results if site.get('href')]
     
@@ -53,14 +53,17 @@ def fetch_all_content(results: List[Dict]) -> List[str]:
         future_to_url = {executor.submit(fetch_content, url): url for url in urls}
         
         content_list = []
-        for future in future_to_url:
+        for future, url in future_to_url.items():
             try:
                 content = future.result()
                 if content:
-                    content_list.append({
+                    result = {
                         "type": "text",
-                        "text": content
-                    })
+                        "text": content,
+                    }
+                    if include_urls:
+                        result["url"] = url
+                    content_list.append(result)
             except Exception as e:
                 print(f"Request failed with exception: {e}")
         
