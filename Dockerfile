@@ -13,20 +13,17 @@ ENV UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
 
-RUN --mount=type=cache,target=/root/.cache/uv \
---mount=type=bind,source=uv.lock,target=uv.lock \
---mount=type=bind,source=pyproject.toml,target=pyproject.toml \
---mount=type=bind,source=.python-version,target=.python-version \
-uv sync --frozen --no-install-project --no-dev --no-editable
-
-COPY uv.lock /app
-COPY pyproject.toml /app
-COPY README.md /app
-COPY .python-version /app
-ADD ./src/mcp_local_rag /app/mcp_local_rag
+COPY uv.lock pyproject.toml README.md .python-version /app/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-uv sync --locked --no-dev
+    --mount=type=bind,source=pyproject.toml,target=/app/pyproject.toml \
+    --mount=type=bind,source=uv.lock,target=/app/uv.lock \
+    uv sync --frozen --no-install-project --no-dev --no-editable
+
+COPY ./src/mcp_local_rag /app/mcp_local_rag
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev
 
 # Then, use a final image without uv
 FROM python:3.10-slim-bookworm
@@ -39,11 +36,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user
+RUN groupadd -r app && useradd -r -g app app
+
 # Copy the application from the builder
 COPY --from=builder --chown=app:app /app /app
 
 # Place executables in the environment at the front of the path
-ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONPATH=/app
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH=/app
+
+USER app
 
 ENTRYPOINT ["mcp-local-rag"]
