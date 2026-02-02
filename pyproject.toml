@@ -11,8 +11,8 @@ dependencies = [
  "aiohttp>=3.13.2",
  "beautifulsoup4>=4.14.3",
  "ddgs>=9.9.3",
- "fastmcp>=2.14.0",
- "mediapipe>=0.10.21",
+ "fastmcp>=2.14.4",
+ "mediapipe>=0.10.32",
  "requests>=2.32.5",
 ]
 classifiers = [
