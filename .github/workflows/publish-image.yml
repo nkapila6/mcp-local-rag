@@ -48,6 +48,6 @@ jobs:
             ${{ env.IMAGE }}:${{ github.ref_name }}
             ${{ env.IMAGE }}:latest
           labels: |
-            io.modelcontextprotocol.server.name="io.github.${{ github.repository }}"
-          cache-from: type=ghs
+            io.modelcontextprotocol.server.name="io.github.${{ env.IMAGE }}"
+          cache-from: type=gha
           cache-to: type=gha,mode=max
