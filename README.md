@@ -192,3 +192,8 @@ Have ideas or want to improve this project? Issues and pull requests are welcome
 
 # License
 This project is licensed under the MIT License.
+
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/nkapila6-mcp-local-rag).
+
