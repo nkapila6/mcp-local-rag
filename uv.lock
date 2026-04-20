@@ -589,16 +589,16 @@ wheels = [
 
 [[package]]
 name = "ddgs"
-version = "9.12.1"
+version = "9.14.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "lxml" },
     { name = "primp" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/2b/4a0124239bf91350d5f04e5fac21a7831e7b7677f61adf56e789fe3d2a42/ddgs-9.12.1.tar.gz", hash = "sha256:8105c5db9025c9d2bcaa085542cd8f9ce6defe20f2c5ca7b8d7ac0061148bc8e", size = 36892, upload-time = "2026-04-03T09:38:47.706Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3b/82/84a183483843a9e9113296628c25443aaf409a7b30cdeb6d97c7cd28782d/ddgs-9.14.0.tar.gz", hash = "sha256:e7767fca7b070c0ba680c1069a551fc611296ec46b67ac3d5144656745a7ec5f", size = 57148, upload-time = "2026-04-17T07:49:22.993Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/ee/6984ec65b489bb50d9481a24c122ca9ad78bb4994efab673b237223caf9a/ddgs-9.12.1-py3-none-any.whl", hash = "sha256:1492b2e15e35bcf3a671f2d686f4a86f5e2eca0b26c056ac7b66618432d2e562", size = 45407, upload-time = "2026-04-03T09:38:46.505Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/0b/3de3bc74df2a94f83a610cf5b0e79ee6a85ed9472cd6d6c02c0e45255398/ddgs-9.14.0-py3-none-any.whl", hash = "sha256:e542def6e9767f2e687dfe1d12905d84ba339c22d9ccfe21b15ef310dea76276", size = 67002, upload-time = "2026-04-17T07:49:21.739Z" },
 ]
 
 [[package]]
@@ -1276,7 +1276,7 @@ dependencies = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.13.4" },
     { name = "beautifulsoup4", specifier = ">=4.14.3" },
-    { name = "ddgs", specifier = ">=9.12.0" },
+    { name = "ddgs", specifier = ">=9.14.0" },
     { name = "fastmcp", specifier = ">=3.1.1" },
     { name = "mediapipe", specifier = ">=0.10.33" },
     { name = "requests", specifier = ">=2.33.0" },
