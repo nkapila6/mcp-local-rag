@@ -7,3 +7,8 @@ Dockerfile linguist-detectable=false
 *.mermaid linguist-detectable=false
 *.sh linguist-detectable=false
 .envrc linguist-detectable=false
+
+README.md linguist-documentation
+skills/README.md linguist-documentation
+skills/local-rag-search/README.md linguist-documentation
+skills/local-rag-search/SKILL.md linguist-detectable
