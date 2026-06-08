@@ -6,7 +6,7 @@ description = "MCP \"server\" that can perform a web search locally without the 
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "aiohttp>=3.13.4",
+  "aiohttp>=3.14.1",
   "beautifulsoup4>=4.14.3",
   "ddgs>=9.14.2",
   "fastmcp>=3.2.4",
