@@ -1,13 +1,16 @@
-<a href='https://github.com/nkapila6/mcp-local-rag/'><img src='images/rag.jpeg' width='200' height='200'></a>
-
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nkapila6/mcp-local-rag)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/nkapila6/mcp-local-rag)
+<!--<a href='https://github.com/nkapila6/mcp-local-rag/'><img src='images/rag.jpeg' width='200' height='200'></a>-->
 
 <!-- omit from toc -->
 # mcp-local-rag
 "primitive" RAG-like web search model context protocol (MCP) server that runs locally. ✨ no APIs ✨
 
 A RAG-based web search and deep research model context protocol (MCP) server that runs entirely locally. Features multi-engine research across 9+ search backends with semantic similarity ranking, and requires no API keys.
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nkapila6/mcp-local-rag)
+
+[![Add MCP Server mcp-local-rag to LM Studio](https://files.lmstudio.ai/deeplink/mcp-install-light.svg)](https://lmstudio.ai/install-mcp?name=mcp-local-rag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLXB5dGhvbj0zLjEwIiwiLS1mcm9tIiwiZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS9ua2FwaWxhNi9tY3AtbG9jYWwtcmFnIiwibWNwLWxvY2FsLXJhZyJdfQ%3D%3D)
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/nkapila6/mcp-local-rag)
 
 - [Features](#features)
   - [Multi-Engine Deep Research](#multi-engine-deep-research)
