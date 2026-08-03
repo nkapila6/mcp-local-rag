@@ -10,7 +10,7 @@ dependencies = [
   "beautifulsoup4>=4.15.0",
   "ddgs>=9.14.2",
   "fastmcp>=3.4.2",
-  "mediapipe>=0.10.35",
+  "mediapipe>=1.0.0",
   "requests>=2.34.2",
 ]
 classifiers = ["Programming Language :: Python :: 3.10"]
