@@ -1485,7 +1485,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.15.0" },
     { name = "ddgs", specifier = ">=9.14.2" },
     { name = "fastmcp", specifier = ">=3.4.2" },
-    { name = "mediapipe", specifier = ">=0.10.35" },
+    { name = "mediapipe", specifier = ">=1.0.1" },
     { name = "requests", specifier = ">=2.34.2" },
 ]
 
@@ -1500,7 +1500,7 @@ wheels = [
 
 [[package]]
 name = "mediapipe"
-version = "0.10.35"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absl-py" },
@@ -1512,10 +1512,11 @@ dependencies = [
     { name = "sounddevice" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/aa/c2/439e948d2a9a542498aee5d8fa3fb91ac6f4478be5d502f0c78ca3fb2333/mediapipe-0.10.35-py3-none-macosx_11_0_arm64.whl", hash = "sha256:3b31376f34ca3665e34b834565996464cd66c9c91316e914fa7f149c891ce7ac", size = 17782605, upload-time = "2026-04-27T17:45:29.457Z" },
-    { url = "https://files.pythonhosted.org/packages/32/8f/1bc57dbc9b7b03c8f875aac23380ec57e9002cc02fe6720045fb263f3966/mediapipe-0.10.35-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:db9a579df48cffe9570cd3e93f6a5d2dd089a1103b846c60c5b5de8a21c38db0", size = 12400490, upload-time = "2026-04-27T17:45:31.848Z" },
-    { url = "https://files.pythonhosted.org/packages/5b/f6/763477e9aeed98accc984ed6ee3f11a21a0c5fd1d1c6586b8d07067748ff/mediapipe-0.10.35-py3-none-win_amd64.whl", hash = "sha256:b08f001cf3c3cd0d88d9ed68f3368dc8a4913f568281a93117f083115aa672ba", size = 10905503, upload-time = "2026-04-27T17:45:33.946Z" },
-    { url = "https://files.pythonhosted.org/packages/07/b3/5c7fa594c731e8dafab9f1a46ab6cef670fa62dbbfb6248cc70e42ec6fc5/mediapipe-0.10.35-py3-none-win_arm64.whl", hash = "sha256:46255326a6213118aaa518a7aa25e35f93337e82677960cc2a945f117bff8444", size = 9992331, upload-time = "2026-04-27T17:45:36.193Z" },
+    { url = "https://files.pythonhosted.org/packages/18/56/911762884caba685dc8156d0136c58196a228c2b447023cfa0cfdb32f6c5/mediapipe-1.0.1-py3-none-macosx_11_0_arm64.whl", hash = "sha256:0a9fb67957f7d28e84f485e9c6716a43367b3f6f07170f31c3f72cac1addd031", size = 33662903, upload-time = "2026-08-14T18:23:54.891Z" },
+    { url = "https://files.pythonhosted.org/packages/16/9d/515c6ebc98db21484b2b93b7403464d08fb7861b6430752801bc75d29372/mediapipe-1.0.1-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:d6050e773dc6698eb86324090f61af1ccab28a6f1e9f77d98fe0611cef707997", size = 35841411, upload-time = "2026-08-14T18:23:58.093Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/58/bdd5bada89d7a132375df05e962bf702c148b47043dca98d820d9395152b/mediapipe-1.0.1-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:121522251afc3c135e4b7b0c341dd5e050ad1ec87631127484f3c389ae385044", size = 37881482, upload-time = "2026-08-14T18:24:01.091Z" },
+    { url = "https://files.pythonhosted.org/packages/22/71/42365b0aec2a96dfbeb3441220fe8dccd9a833f36adfecf3aa9f211c449b/mediapipe-1.0.1-py3-none-win_amd64.whl", hash = "sha256:96dc9de6bd04a6315ef424fda5c48e0929f2d78317295e75bc32c0bceeab517b", size = 20103114, upload-time = "2026-08-14T18:24:03.861Z" },
+    { url = "https://files.pythonhosted.org/packages/49/47/8a901eade7352051ae4d7b0b070ad8a84bde9cbf3092afd69088982842bb/mediapipe-1.0.1-py3-none-win_arm64.whl", hash = "sha256:4bbbb3838a99f7fdcd3cb0e071560120df45ddc48c1ad097ef1457f8600e0e77", size = 17700960, upload-time = "2026-08-14T18:24:06.172Z" },
 ]
 
 [[package]]
@@ -2378,8 +2379,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "sys_platform != 'darwin'" },
-    { name = "jeepney", marker = "sys_platform != 'darwin'" },
+    { name = "cryptography" },
+    { name = "jeepney" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [
