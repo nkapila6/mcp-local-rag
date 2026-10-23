@@ -34,9 +34,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN find .venv/lib/python3.*/site-packages -type d \( -name tests -o -name test \) -prune -exec rm -rf {} + \
     && find .venv /python -name '*.pyi' -delete \
     && cd /python/cpython-* \
-    && rm -rf include share lib/libpython3* lib/pkgconfig lib/tcl* lib/tk* lib/itcl* lib/thread* lib/Tix* \
+    && rm -rf include share lib/libpython3* lib/pkgconfig lib/tcl* lib/tk* lib/libtcl* lib/libtk* lib/itcl* lib/thread* lib/Tix* \
     && cd lib/python3.* \
-    && rm -rf test idlelib tkinter turtledemo ensurepip lib2to3 site-packages/*
+    && rm -rf test idlelib tkinter turtledemo ensurepip lib2to3 site-packages/* lib-dynload/_tkinter*
 
 # distroless/cc doesn't ship these: numpy needs libz, stdlib _crypt needs libcrypt
 RUN mkdir /extra-libs \
