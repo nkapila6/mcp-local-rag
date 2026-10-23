@@ -27,24 +27,23 @@ COPY ./src/mcp_local_rag /app/mcp_local_rag
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
-# Trim things we never load at runtime: the LiteRT GPU backend (we run on CPU),
-# test suites, type stubs, and stdlib modules that can't work without a display.
-# The python binary is statically linked, so libpython.so is only for embedding,
-# and the base interpreter's pip/setuptools are never used by the venv.
-RUN rm -f .venv/lib/python3.10/site-packages/ai_edge_litert/libLiteRtWebGpuAccelerator.so \
-    && find .venv/lib/python3.10/site-packages -type d \( -name tests -o -name test \) -prune -exec rm -rf {} + \
+# Trim things we never load at runtime: test suites, type stubs, and stdlib
+# modules that can't work without a display. The python binary is statically
+# linked, so libpython.so is only for embedding, and the base interpreter's
+# pip/setuptools are never used by the venv.
+RUN find .venv/lib/python3.*/site-packages -type d \( -name tests -o -name test \) -prune -exec rm -rf {} + \
     && find .venv /python -name '*.pyi' -delete \
     && cd /python/cpython-* \
     && rm -rf include share lib/libpython3* lib/pkgconfig lib/tcl* lib/tk* lib/itcl* lib/thread* lib/Tix* \
-    && cd lib/python3.10 \
+    && cd lib/python3.* \
     && rm -rf test idlelib tkinter turtledemo ensurepip lib2to3 site-packages/*
 
 # distroless/cc doesn't ship these: numpy needs libz, stdlib _crypt needs libcrypt
 RUN mkdir /extra-libs \
     && cp -L /lib/$(uname -m)-linux-gnu/libz.so.1 /lib/$(uname -m)-linux-gnu/libcrypt.so.1 /extra-libs/
 
-# distroless/cc has glibc and libstdc++, which is all the python build and
-# LiteRT need. No shell, no package manager.
+# distroless/cc has glibc, which is all the python build and numpy need
+# (plus the two libs above). No shell, no package manager.
 FROM gcr.io/distroless/cc-debian12:nonroot
 
 WORKDIR /app
