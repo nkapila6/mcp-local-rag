@@ -4,17 +4,16 @@ version = "1.0.0"
 authors = [{ name = "Nikhil Kapila", email = "info@nkapila.me" }]
 description = "MCP \"server\" that can perform a web search locally without the use of APIs."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-  "ai-edge-litert>=2.3.0",
   "aiohttp>=3.14.3",
   "beautifulsoup4>=4.15.0",
   "ddgs>=9.16.0",
   "fastmcp>=3.4.7",
-  "numpy>=1.26",
+  "numpy>=2.3",
   "requests>=2.34.2",
 ]
-classifiers = ["Programming Language :: Python :: 3.10"]
+classifiers = ["Programming Language :: Python :: 3.11"]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
 

@@ -14,9 +14,10 @@ def add_score_to_dict(query: str, results: List[Dict]) -> List[Dict]:
     path = get_path_str(files('mcp_local_rag.embedder').joinpath('embedder.tflite'))
     embedder = fetch_embedder(path)
     query_embedding = embedder.embed(query)
+    bodies = embedder.embed_batch([i['body'] for i in results])
 
-    for i in results:
-        i['score'] = cosine_similarity(embedder.embed(i['body']), query_embedding)
+    for i, body in zip(results, bodies):
+        i['score'] = cosine_similarity(body, query_embedding)
 
     return results
 

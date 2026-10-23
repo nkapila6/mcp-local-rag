@@ -10,6 +10,7 @@ import requests, time
 
 from typing import List, Dict, Optional
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 from bs4 import BeautifulSoup
 
 from importlib.resources import as_file
@@ -18,6 +19,8 @@ def get_path_str(resource)->str:
     with as_file(resource) as path:
         return str(path)
     
+# cached: loading takes ~50ms, and the embedder keeps per-shape plans warm across searches
+@lru_cache(maxsize=1)
 def fetch_embedder(path:str, l2_normalize:bool=True):
     from .embedder import TextEmbedder
     return TextEmbedder(path, l2_normalize=l2_normalize)

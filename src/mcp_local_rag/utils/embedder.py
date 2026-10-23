@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MobileBERT text embedder on LiteRT. Replaces mediapipe's TextEmbedder,
+MobileBERT text embedder in pure numpy. Replaces mediapipe's TextEmbedder,
 which pulled in opencv, matplotlib and sounddevice just to run one model.
 """
 
-import unicodedata, zipfile
+import threading, unicodedata, zipfile
 
 import numpy as np
-from ai_edge_litert.interpreter import Interpreter
+
+from .tflite import Interpreter
+
+# batch rows per model call; bigger batches stop helping and just eat memory
+MAX_BATCH = 32
+# seq lengths get rounded up to this, which keeps the number of cached plans small
+SEQ_BUCKET = 16
 
 
 def _is_punct(ch: str) -> bool:
@@ -33,14 +39,13 @@ class TextEmbedder:
         self.vocab = {w: i for i, w in enumerate(words)}
         self.l2_normalize = l2_normalize
 
-        self.interp = Interpreter(model_path=path)
-        self.interp.allocate_tensors()
-        ins = {d["name"]: d for d in self.interp.get_input_details()}
-        self.ids_idx = ins["input_word_ids"]["index"]
-        self.mask_idx = ins["input_mask"]["index"]
-        self.type_idx = ins["input_type_ids"]["index"]
-        self.seq_len = ins["input_word_ids"]["shape"][1]
-        self.out_idx = self.interp.get_output_details()[0]["index"]
+        self.interp = Interpreter(path)
+        self.input_order = self.interp.input_names
+        self.seq_len = self.interp.max_seq
+        self.dim = self.interp.shapes[self.interp.outputs[0]][-1]
+        # one cached instance serves every tool call, and fastmcp runs sync
+        # tools on worker threads. The interpreter isn't reentrant.
+        self._lock = threading.Lock()
 
     def _basic_tokenize(self, text: str) -> list:
         # no accent stripping on purpose: mediapipe doesn't do it either, and
@@ -79,21 +84,28 @@ class TextEmbedder:
         return [p for w in self._basic_tokenize(text) for p in self._wordpiece(w)]
 
     def embed(self, text: str) -> np.ndarray:
-        toks = ["[CLS]"] + self.tokenize(text)[: self.seq_len - 2] + ["[SEP]"]
-        ids = np.zeros((1, self.seq_len), np.int32)
-        mask = np.zeros((1, self.seq_len), np.int32)
-        ids[0, : len(toks)] = [self.vocab[t] for t in toks]
-        mask[0, : len(toks)] = 1
+        return self.embed_batch([text])[0]
 
-        self.interp.set_tensor(self.ids_idx, ids)
-        self.interp.set_tensor(self.mask_idx, mask)
-        self.interp.set_tensor(self.type_idx, np.zeros_like(ids))
-        self.interp.invoke()
-
-        vec = self.interp.get_tensor(self.out_idx)[0].copy()
-        if self.l2_normalize:
-            vec /= np.linalg.norm(vec)
-        return vec
+    def embed_batch(self, texts: list) -> np.ndarray:
+        toks = [["[CLS]"] + self.tokenize(t)[: self.seq_len - 2] + ["[SEP]"] for t in texts]
+        out = np.zeros((len(texts), self.dim), np.float32)
+        # similar lengths together, so short texts don't pay for a long one's padding
+        order = sorted(range(len(texts)), key=lambda i: len(toks[i]))
+        for start in range(0, len(order), MAX_BATCH):
+            chunk = order[start:start + MAX_BATCH]
+            longest = len(toks[chunk[-1]])
+            seq = min(self.seq_len, -(-longest // SEQ_BUCKET) * SEQ_BUCKET)
+            ids = np.zeros((len(chunk), seq), np.int32)
+            mask = np.zeros_like(ids)
+            for row, i in enumerate(chunk):
+                ids[row, : len(toks[i])] = [self.vocab[t] for t in toks[i]]
+                mask[row, : len(toks[i])] = 1
+            feeds = {"input_word_ids": ids, "input_mask": mask, "input_type_ids": np.zeros_like(ids)}
+            with self._lock:
+                out[chunk] = self.interp.run(*(feeds[n] for n in self.input_order))[0]
+        if self.l2_normalize and len(texts):
+            out /= np.linalg.norm(out, axis=1, keepdims=True)
+        return out
 
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
