@@ -4,15 +4,17 @@ version = "1.1.0"
 authors = [{ name = "Nikhil Kapila", email = "info@nkapila.me" }]
 description = "MCP \"server\" that can perform a web search locally without the use of APIs."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
   "ddgs>=9.16.0",
   "fastmcp>=4.1.3,<4.2",
   "lxml>=6.1.3",
-  "numpy>=2.3",
+  # 2.3+ dropped Python 3.10; old configs still pin --python=3.10
+  "numpy>=2.2; python_version < '3.11'",
+  "numpy>=2.3; python_version >= '3.11'",
   "primp>=2.0.1",
 ]
-classifiers = ["Programming Language :: Python :: 3.11"]
+classifiers = ["Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13"]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
 

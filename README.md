@@ -68,7 +68,7 @@ Or with Docker (amd64 and arm64):
 
 Not sure where your config lives? See the [MCP quickstart](https://modelcontextprotocol.io/quickstart/user). Tested with Claude Desktop, Claude Code, Cursor and Goose.
 
-**Coming from `mcp-local-rag`?** Old configs had `"--python=3.10"` in `args`, and mcpsurfr needs Python 3.11+, so that config now fails with "No solution found". Replace the entry with one of the configs above. The old command name `mcp-local-rag` still works, but the `--python=3.10` pin has to go.
+**Coming from `mcp-local-rag`?** Your old config keeps working, since the old URL redirects and the `mcp-local-rag` command still exists. Switching to the config above gets you the new name and drops the `--python=3.10` pin (3.10 reaches end of life this month).
 
 ## Skill and prompt
 
