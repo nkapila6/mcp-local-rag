@@ -9,6 +9,6 @@ Dockerfile linguist-detectable=false
 .envrc linguist-detectable=false
 
 README.md linguist-documentation
-skills/README.md linguist-documentation
-skills/mcpsurfr-search/README.md linguist-documentation
-skills/mcpsurfr-search/SKILL.md linguist-detectable
+src/mcpsurfr/skills/README.md linguist-documentation
+src/mcpsurfr/skills/mcpsurfr-search/README.md linguist-documentation
+src/mcpsurfr/skills/mcpsurfr-search/SKILL.md linguist-detectable

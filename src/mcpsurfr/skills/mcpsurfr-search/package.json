@@ -21,7 +21,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/nkapila6/mcpsurfr.git",
-    "directory": "skills/mcpsurfr-search"
+    "directory": "src/mcpsurfr/skills/mcpsurfr-search"
   },
   "homepage": "https://github.com/nkapila6/mcpsurfr#readme",
   "files": [

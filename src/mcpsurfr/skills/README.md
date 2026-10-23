@@ -30,7 +30,7 @@ Teaches Claude how to effectively use the mcpsurfr web search tools with semanti
 
 1. Navigate to **Settings** → **Skills**
 2. Click **Add Skill** → **Add from folder**
-3. Select the skill folder (e.g., `skills/mcpsurfr-search/`)
+3. Select the skill folder (e.g., `src/mcpsurfr/skills/mcpsurfr-search/`)
 4. The skill will now be available in your conversations
 
 ### In Claude Code (via Plugin Marketplace)

@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-VERSION_FILES=(pyproject.toml skills/mcpsurfr-search/package.json server.json)
+VERSION_FILES=(pyproject.toml src/mcpsurfr/skills/mcpsurfr-search/package.json server.json)
 
 version="${1:-}"
 dry_run="${2:-}"

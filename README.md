@@ -11,7 +11,7 @@ A RAG-based web search and deep research model context protocol (MCP) server tha
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/nkapila6/mcpsurfr)
 
 - [Features](#features)
-  - [Multi-Engine Deep Research](#multi-engine-deep-research)
+  - [What it does](#what-it-does)
 - [Installation](#installation)
     - [Run Directly via `uvx`](#run-directly-via-uvx)
     - [Using Docker (recommended)](#using-docker-recommended)
@@ -31,13 +31,13 @@ flowchart TD
     B -->|2.Sends Query| C[mcpsurfr Tool]
     
     subgraph mcpsurfr Processing
-    C -->|Search DuckDuckGo| D[Fetch 10 search results]
+    C -->|Search via ddgs| D[Fetch 10 search results]
     D -->|Fetch Embeddings| E["Embeddings from MobileBERT (int8, plain numpy)"]
     E -->|Compute Similarity| F[Rank Entries Against Query]
     F -->|Select top k results| G[Context Extraction from URL]
     end
     
-    G -->|Returns Markdown from HTML content| B
+    G -->|Returns page text with sources| B
     B -->|3.Generated response with context| H[Final LLM Output]
     H -->|5.Present result to user| A
 
@@ -53,32 +53,24 @@ flowchart TD
 
 # Features
 
-## Multi-Engine Deep Research
-The server supports comprehensive multi-engine research capabilities that go beyond simple single-query searches:
+## What it does
+- **Search without API keys**: searches go through [ddgs](https://github.com/deedy5/ddgs). The default is its "auto" mode, which queries several engines at once and skips any that are blocked.
+- **Local re-ranking**: results are re-ranked on your machine by semantic similarity to the query (a small MobileBERT model on plain numpy). Only the best pages get fetched.
+- **Clean page text**: pages are fetched with browser impersonation, and only the main content is kept (no nav menus, cookie banners or footers), up to 10k characters per page.
+- **Deep research**: several search terms across several engines, de-duplicated and ranked together.
+- **Talks back**: clients get progress while a search runs and warnings when an engine comes back empty. Google often blocks scrapers, so it falls back to "auto" on its own.
+- **Ships its own skill and a `research` prompt**: clients that support MCP resources and prompts pick them up automatically.
 
-- **9+ Search Backends**: DuckDuckGo, Google, Bing, Brave, Wikipedia, Yahoo, Yandex, Mojeek, Grokipedia
-- **Multi-Topic Research**: Search multiple related queries simultaneously
-- **Semantic Ranking**: RAG-like similarity scoring ranks the most relevant results
-- **Privacy Options**: Choose privacy-focused engines (DuckDuckGo, Brave) or comprehensive ones (Google)
-- **No API Keys Required**: All processing runs locally with embedded models
+### Tools
 
-### Deep Research Tools
+| Tool | What it's for |
+|---|---|
+| `rag_search_ddgs` | Default web search (ddgs "auto" metasearch) |
+| `rag_search_google` | Google search, with automatic fallback when Google blocks |
+| `deep_research` | Multiple search terms across chosen backends (default "auto") |
+| `deep_research_ddgs` / `deep_research_google` | `deep_research` shortcuts |
 
-1. **`deep_research`** - Comprehensive multi-engine research
-   - Search across multiple engines simultaneously
-   - Ideal for complex topics requiring diverse perspectives
-   - Customizable backends and result limits
-
-2. **`deep_research_google`** - Google-focused deep dive
-   - Leverage Google's comprehensive index
-   - Best for technical/scientific queries
-
-3. **`deep_research_ddgs`** - Privacy-first deep research
-   - Use DuckDuckGo for private, extensive research
-   - Great for general topics without tracking
-
-4. **`rag_search_ddgs`** & **`rag_search_google`** - Quick single searches
-   - Fast, focused searches when you need quick answers
+Backends for `deep_research`: `auto`, `brave`, `duckduckgo`, `google`, `grokipedia`, `mojeek`, `startpage`, `wikipedia`, `yahoo`. In practice `auto` and `brave` are the dependable ones. Google, Startpage and Mojeek block scrapers often.
 
 # Installation
 Locate your MCP config path [here](https://modelcontextprotocol.io/quickstart/user) or check your MCP client settings. 
@@ -125,37 +117,11 @@ Add this to your MCP server configuration:
 
 # Agent Skills
 
-This repository includes **Agent Skills** that teach Claude how to effectively use the mcpsurfr tools for intelligent web searches and deep research. Skills are folders of instructions that Claude loads dynamically to improve performance on specialized tasks.
+The server ships a skill, [`mcpsurfr-search`](src/mcpsurfr/skills/mcpsurfr-search/SKILL.md), that tells the model which tool and backend to pick, how to write search terms, and how to cite what it finds.
 
-### Available Skills
+You usually don't need to install it. The server exposes it as an MCP resource (`skill://mcpsurfr-search/SKILL.md`), so clients that read resources get it automatically. To add it to Claude Desktop by hand: **Settings** → **Skills** → **Add Skill** → **Add from folder**, then pick `src/mcpsurfr/skills/mcpsurfr-search/`.
 
-**`mcpsurfr-search`** - Teaches Claude best practices for:
-- **Smart tool selection**: Choosing between quick searches or comprehensive deep research
-- **Multi-engine research**: Using multiple search backends for diverse perspectives
-- **Effective query formulation**: Writing natural language queries that yield better results
-- **Parameter tuning**: Adjusting `num_results`, `top_k`, and backend selection for different use cases
-- **Privacy-aware searching**: Defaulting to privacy-focused engines while allowing comprehensive searches when needed
-
-### Deep Research Use Cases
-
-The skill enables comprehensive topic research using multiple search terms and engines. It's particularly useful for technical deep dives that leverage Google's documentation coverage, multi-perspective analysis that compares information across different search engines, privacy-focused research using DuckDuckGo or Brave, and factual verification by cross-referencing Wikipedia and other authoritative sources.
-
-### Using the Skills
-
-**In Claude Desktop:**
-1. Go to **Settings** → **Skills**
-2. Click **Add Skill** → **Add from folder**
-3. Select `skills/mcpsurfr-search/`
-
-**In conversations:**
-Once loaded, simply ask Claude to search for information and it will automatically apply the skill's best practices. Try queries like:
-- "Do deep research on recent quantum computing developments"
-- "Search multiple sources for sustainable energy solutions"
-- "Find comprehensive technical documentation about Kubernetes optimization"
-
-Learn more about Agent Skills at the [Anthropic Skills Repository](https://github.com/anthropics/skills).
-
-See the [skills/README.md](skills/README.md) for detailed usage instructions and skill development guidelines.
+There's also a `research` prompt (`research(topic)`): it plans a few search terms, runs `deep_research` and writes a cited summary. Clients that support prompts show it as a slash command.
 
 # Security audits
 MseeP does security audits on every MCP server, you can see the security audit of this MCP server by clicking [here](https://mseep.ai/app/nkapila6-mcp-local-rag).
