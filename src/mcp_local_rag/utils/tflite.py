@@ -71,33 +71,6 @@ _OPS = {0: "ADD", 2: "CONCATENATION", 6: "DEQUANTIZE", 9: "FULLY_CONNECTED", 18:
         126: "BATCH_MATMUL"}
 
 
-def _round_away(x):
-    # C's round(): halves go away from zero, unlike np.round
-    return np.copysign(np.floor(np.abs(x) + np.float32(0.5)), x)
-
-
-def _quantize_rows(x):
-    """Per-row asymmetric int8 quantization, same rules as TFLite's
-    AsymmetricQuantizeFloats (hybrid FC with asymmetric_quantize_inputs).
-    Returns (x_q - zero_point) as float32 integer levels, and the row scales."""
-    rmin = np.minimum(x.min(axis=1, keepdims=True), np.float32(0))
-    rmax = np.maximum(x.max(axis=1, keepdims=True), np.float32(0))
-    scale = (rmax - rmin) / np.float32(255)
-    scale[scale == 0] = 1  # all-zero row: everything quantizes to 0 anyway
-    lo, hi = rmin / scale, rmax / scale
-    zp = np.where(128 + np.abs(lo) < 127 + np.abs(hi), -128 - lo, 127 - hi)
-    zp = np.clip(_round_away(zp), -128, 127).astype(np.float32)
-
-    # per element we want clip(round(x / scale) + zp, -128, 127) - zp. This runs
-    # on every FC input and dominates the runtime, so it's cut to two passes:
-    # - rint differs from C round() only on exact .5 ties
-    # - the clip is skipped: zp is picked so the row's min/max land on -128/127,
-    #   and only a tie at the row's extreme value can overshoot, by one level
-    q = np.multiply(x, np.float32(1) / scale)
-    np.rint(q, out=q)
-    return q, scale
-
-
 def _act(x, code):
     if code == 0:
         return x
@@ -186,18 +159,18 @@ class Interpreter:
             outs = [int(x) for x in op.vector(2, np.int32)]
             self.ops.append((name, ins, outs, _parse_options(name, op.table(4))))
 
-        # FC weights stored transposed as float32. int8 weights keep their integer
-        # levels (scale applied after the matmul) so the hybrid path stays exact.
+        # FC weights dequantized once and stored transposed as float32, so each FC
+        # is a plain BLAS matmul. LiteRT instead quantizes activations to int8 on
+        # the fly (hybrid mode); in numpy that costs more than it saves and doesn't
+        # rank results any closer to LiteRT than float does.
         self.fc_weights = {}
         for name, ins, _, _ in self.ops:
             if name == "FULLY_CONNECTED" and ins[1] not in self.fc_weights:
                 w = self.consts[ins[1]]
-                scale = None
                 if w.dtype == np.int8:
                     scale, zp = self.qparams[ins[1]]
-                    w = w.astype(np.float32) - zp
-                    scale = np.float32(scale)
-                self.fc_weights[ins[1]] = (np.ascontiguousarray(w.T, dtype=np.float32), scale)
+                    w = (w.astype(np.float32) - zp) * np.float32(scale)
+                self.fc_weights[ins[1]] = np.ascontiguousarray(w.T, dtype=np.float32)
 
         self.max_seq = self.shapes[self.inputs[0]][1]
         self._seq = self.max_seq
@@ -209,16 +182,8 @@ class Interpreter:
         x = [None if i < 0 else v[i] for i in ins]
         if name == "FULLY_CONNECTED":
             a = x[0]
-            w, w_scale = self.fc_weights[ins[1]]
-            a2 = a.reshape(-1, w.shape[0])
-            if w_scale is None:
-                y = a2 @ w
-            else:
-                q, x_scale = _quantize_rows(a2)
-                # integer levels in float32: every product and partial sum stays
-                # below 2^24, so BLAS gives the same result as int8 x int8 -> int32
-                y = q @ w
-                y *= x_scale * w_scale
+            w = self.fc_weights[ins[1]]
+            y = a.reshape(-1, w.shape[0]) @ w
             if len(x) > 2 and x[2] is not None:
                 y += x[2]
             y = _act(y, o["act"])
