@@ -1,6 +1,6 @@
 {
   "name": "@mcp-local-rag/local-rag-search",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "AgentSkill for efficiently using mcp-local-rag web search with semantic similarity ranking",
   "type": "agentskill",
   "keywords": [
