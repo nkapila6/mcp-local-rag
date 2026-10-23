@@ -34,7 +34,7 @@ flowchart TD
     
     subgraph mcpsurfr Processing
     C -->|Search DuckDuckGo| D[Fetch 10 search results]
-    D -->|Fetch Embeddings| E[Embeddings from MobileBERT (int8, plain numpy)]
+    D -->|Fetch Embeddings| E["Embeddings from MobileBERT (int8, plain numpy)"]
     E -->|Compute Similarity| F[Rank Entries Against Query]
     F -->|Select top k results| G[Context Extraction from URL]
     end
