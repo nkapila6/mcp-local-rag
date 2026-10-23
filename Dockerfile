@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=/app/uv.lock \
     uv sync --frozen --no-install-project --no-dev --no-editable
 
-COPY ./src/mcp_local_rag /app/mcp_local_rag
+COPY ./src/mcpsurfr /app/mcpsurfr
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
@@ -57,4 +57,4 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH=/app \
     LD_LIBRARY_PATH=/usr/local/lib
 
-ENTRYPOINT ["/app/.venv/bin/mcp-local-rag"]
+ENTRYPOINT ["/app/.venv/bin/mcpsurfr"]

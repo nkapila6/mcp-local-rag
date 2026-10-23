@@ -1,16 +1,16 @@
-<!--<a href='https://github.com/nkapila6/mcp-local-rag/'><img src='images/rag.jpeg' width='200' height='200'></a>-->
+<!--<a href='https://github.com/nkapila6/mcpsurfr/'><img src='images/rag.jpeg' width='200' height='200'></a>-->
 
 <!-- omit from toc -->
-# mcp-local-rag
-"primitive" RAG-like web search model context protocol (MCP) server that runs locally. ✨ no APIs ✨
+# mcpsurfr
+_Formerly `mcp-local-rag`._ "primitive" RAG-like web search model context protocol (MCP) server that runs locally. ✨ no APIs ✨
 
 A RAG-based web search and deep research model context protocol (MCP) server that runs entirely locally. Features multi-engine research across 9+ search backends with semantic similarity ranking, and requires no API keys.
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nkapila6/mcp-local-rag)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nkapila6/mcpsurfr)
 
-[![Add MCP Server mcp-local-rag to LM Studio](https://files.lmstudio.ai/deeplink/mcp-install-light.svg)](https://lmstudio.ai/install-mcp?name=mcp-local-rag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLXB5dGhvbj0zLjEwIiwiLS1mcm9tIiwiZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS9ua2FwaWxhNi9tY3AtbG9jYWwtcmFnIiwibWNwLWxvY2FsLXJhZyJdfQ%3D%3D)
+[![Add MCP Server mcpsurfr to LM Studio](https://files.lmstudio.ai/deeplink/mcp-install-light.svg)](https://lmstudio.ai/install-mcp?name=mcpsurfr&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLXB5dGhvbj0zLjExIiwiLS1mcm9tIiwiZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS9ua2FwaWxhNi9tY3BzdXJmciIsIm1jcHN1cmZyIl19)
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/nkapila6/mcp-local-rag)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/nkapila6/mcpsurfr)
 
 - [Features](#features)
   - [Multi-Engine Deep Research](#multi-engine-deep-research)
@@ -30,9 +30,9 @@ A RAG-based web search and deep research model context protocol (MCP) server tha
 %%{init: {'theme': 'base'}}%%
 flowchart TD
     A[User] -->|1.Submits LLM Query| B[Language Model]
-    B -->|2.Sends Query| C[mcp-local-rag Tool]
+    B -->|2.Sends Query| C[mcpsurfr Tool]
     
-    subgraph mcp-local-rag Processing
+    subgraph mcpsurfr Processing
     C -->|Search DuckDuckGo| D[Fetch 10 search results]
     D -->|Fetch Embeddings| E[Embeddings from MobileBERT (int8, plain numpy)]
     E -->|Compute Similarity| F[Rank Entries Against Query]
@@ -91,13 +91,13 @@ Add this to your MCP server configuration:
 ```json
 {
   "mcpServers": {
-    "mcp-local-rag":{
+    "mcpsurfr":{
       "command": "uvx",
         "args": [
-          "--python=3.10",
+          "--python=3.11",
           "--from",
-          "git+https://github.com/nkapila6/mcp-local-rag",
-          "mcp-local-rag"
+          "git+https://github.com/nkapila6/mcpsurfr",
+          "mcpsurfr"
         ]
       }
   }
@@ -110,7 +110,7 @@ Add this to your MCP server configuration:
 ```json
 {
   "mcpServers": {
-    "mcp-local-rag": {
+    "mcpsurfr": {
       "command": "docker",
       "args": [
         "run",
@@ -119,7 +119,7 @@ Add this to your MCP server configuration:
         "--init",
         "-e",
         "DOCKER_CONTAINER=true",
-        "ghcr.io/nkapila6/mcp-local-rag:v1.0.2"
+        "ghcr.io/nkapila6/mcpsurfr:latest"
       ]
     }
   }
@@ -128,11 +128,11 @@ Add this to your MCP server configuration:
 
 # Agent Skills
 
-This repository includes **Agent Skills** that teach Claude how to effectively use the mcp-local-rag tools for intelligent web searches and deep research. Skills are folders of instructions that Claude loads dynamically to improve performance on specialized tasks.
+This repository includes **Agent Skills** that teach Claude how to effectively use the mcpsurfr tools for intelligent web searches and deep research. Skills are folders of instructions that Claude loads dynamically to improve performance on specialized tasks.
 
 ### Available Skills
 
-**`local-rag-search`** - Teaches Claude best practices for:
+**`mcpsurfr-search`** - Teaches Claude best practices for:
 - **Smart tool selection**: Choosing between quick searches or comprehensive deep research
 - **Multi-engine research**: Using multiple search backends for diverse perspectives
 - **Effective query formulation**: Writing natural language queries that yield better results
@@ -148,7 +148,7 @@ The skill enables comprehensive topic research using multiple search terms and e
 **In Claude Desktop:**
 1. Go to **Settings** → **Skills**
 2. Click **Add Skill** → **Add from folder**
-3. Select `skills/local-rag-search/`
+3. Select `skills/mcpsurfr-search/`
 
 **In conversations:**
 Once loaded, simply ask Claude to search for information and it will automatically apply the skill's best practices. Try queries like:
@@ -174,7 +174,7 @@ The MCP server should work with any MCP client that supports tool calling. Has b
 - Others? You try!
 
 # Examples on Claude Desktop
-When an LLM (like Claude) is asked a question requiring recent web information, it will trigger `mcp-local-rag`.
+When an LLM (like Claude) is asked a question requiring recent web information, it will trigger `mcpsurfr`.
 
 When asked to fetch/lookup/search the web, the model prompts you to use MCP server for the chat.
 
@@ -182,7 +182,7 @@ In the example, have asked it about Google's latest Gemma models released yester
 <img src='images/mcp_prompted.png'>
 
 ## Result
-`mcp-local-rag` performs a live web search, extracts context, and sends it back to the model—giving it fresh knowledge:
+`mcpsurfr` performs a live web search, extracts context, and sends it back to the model—giving it fresh knowledge:
 
 <img src='images/mcp_result.png'>
 

@@ -10,5 +10,5 @@ Dockerfile linguist-detectable=false
 
 README.md linguist-documentation
 skills/README.md linguist-documentation
-skills/local-rag-search/README.md linguist-documentation
-skills/local-rag-search/SKILL.md linguist-detectable
+skills/mcpsurfr-search/README.md linguist-documentation
+skills/mcpsurfr-search/SKILL.md linguist-detectable

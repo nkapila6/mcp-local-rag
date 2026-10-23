@@ -1,6 +1,6 @@
 # Local RAG Search - Agent Skill
 
-An Agent Skill that teaches Claude how to effectively use the [mcp-local-rag](https://github.com/nkapila6/mcp-local-rag) MCP server for intelligent web searches with semantic similarity ranking.
+An Agent Skill that teaches Claude how to effectively use the [mcpsurfr](https://github.com/nkapila6/mcpsurfr) MCP server for intelligent web searches with semantic similarity ranking.
 
 ## What This Skill Does
 
@@ -13,22 +13,22 @@ This skill enables agents to:
 
 ## Prerequisites
 
-This skill requires the [mcp-local-rag MCP server](https://github.com/nkapila6/mcp-local-rag) to be installed and configured in your MCP client.
+This skill requires the [mcpsurfr MCP server](https://github.com/nkapila6/mcpsurfr) to be installed and configured in your MCP client.
 
-### Install mcp-local-rag
+### Install mcpsurfr
 
 Add to your MCP configuration:
 
 ```json
 {
   "mcpServers": {
-    "mcp-local-rag": {
+    "mcpsurfr": {
       "command": "uvx",
       "args": [
-        "--python=3.10",
+        "--python=3.11",
         "--from",
-        "git+https://github.com/nkapila6/mcp-local-rag",
-        "mcp-local-rag"
+        "git+https://github.com/nkapila6/mcpsurfr",
+        "mcpsurfr"
       ]
     }
   }
@@ -40,12 +40,12 @@ Or use Docker:
 ```json
 {
   "mcpServers": {
-    "mcp-local-rag": {
+    "mcpsurfr": {
       "command": "docker",
       "args": [
         "run", "--rm", "-i", "--init",
         "-e", "DOCKER_CONTAINER=true",
-        "ghcr.io/nkapila6/mcp-local-rag:v1.0.2"
+        "ghcr.io/nkapila6/mcpsurfr:v1.0.2"
       ]
     }
   }
@@ -58,7 +58,7 @@ Or use Docker:
 
 1. Navigate to **Settings** → **Skills**
 2. Click **Add Skill** → **Add from folder**
-3. Select this skill folder (`local-rag-search/`)
+3. Select this skill folder (`mcpsurfr-search/`)
 
 ## Usage
 
@@ -88,4 +88,4 @@ Claude will automatically apply the skill's best practices to use the appropriat
 
 ## License
 
-MIT - Same as the parent mcp-local-rag project
+MIT - Same as the parent mcpsurfr project

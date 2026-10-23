@@ -1,7 +1,7 @@
 {
   "$schema": "https://gofastmcp.com/public/schemas/fastmcp.json/v1.json",
   "source": {
-    "path": "src/mcp_local_rag/main.py",
+    "path": "src/mcpsurfr/main.py",
     "entrypoint": "mcp"
   },
   "environment": {
