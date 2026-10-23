@@ -31,4 +31,4 @@ mcpsurfr = "mcpsurfr.main:mcp.run"
 mcp-local-rag = "mcpsurfr.main:mcp.run"
 
 [tool.hatch.build.targets.sdist]
-include = ["embedder/*", "utils/*"]
+include = ["src/mcpsurfr"]
