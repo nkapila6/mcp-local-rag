@@ -16,10 +16,13 @@ import primp
 
 from importlib.resources import as_file
 
+from .extract import extract_main_text
+
 # stdout is the MCP protocol channel in stdio mode, so never print(); log to stderr
 log = logging.getLogger(__name__)
 
-# primp draws HTML tables with box characters, which eat the 10k budget on table-heavy pages
+# primp's text_plain (the fallback) draws HTML tables with box characters,
+# which eat the 10k budget on table-heavy pages
 _BOX_CHARS = re.compile(r"[─-╿]+")
 _TEXT_TYPES = ("text/html", "application/xhtml", "text/plain")
 
@@ -46,8 +49,13 @@ def fetch_content(url: str, timeout: int = 5) -> Optional[str]:
         if not content_type.startswith(_TEXT_TYPES):
             log.info("Skipping %s: %s", url, content_type)
             return None
-        # primp handles the charset (header or <meta>) and drops script/style
-        content = " ".join(_BOX_CHARS.sub(" ", response.text_plain).split())
+        # primp decodes the charset (header or <meta>); extraction drops nav menus,
+        # banners and footers. primp's own html->text is the fallback.
+        content = None
+        if not content_type.startswith("text/plain"):
+            content = extract_main_text(response.text)
+        if not content:
+            content = " ".join(_BOX_CHARS.sub(" ", response.text_plain).split())
         log.debug("Fetched %s in %.2fs", url, time.time() - start_time)
         return content[:10000]  # limitting content to 10k
     except primp.PrimpError as e:
