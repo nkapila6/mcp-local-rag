@@ -1,8 +1,10 @@
+import logging
 from typing import List, Dict
 
 from fastmcp import FastMCP
 
 mcp = FastMCP("RAG Web Search. Can perform Web Searches.")
+log = logging.getLogger(__name__)
 
 def add_score_to_dict(query: str, results: List[Dict]) -> List[Dict]:
     """Add similarity scores to search results."""
@@ -148,7 +150,7 @@ def _deep_research_internal(search_terms:List[str], backends:List[str], num_resu
                     all_results.extend(top_results)
                     search_summary[term][backend] = len(top_results)
             except Exception as e:
-                print(f"Error searching {backend} for '{term}': {e}")
+                log.warning("Error searching %s for %r: %s", backend, term, e)
     
     # remove duplicates and keep high scores
     seen_urls = {}

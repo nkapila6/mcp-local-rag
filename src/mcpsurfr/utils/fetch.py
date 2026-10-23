@@ -6,14 +6,22 @@ Created on 2025-06-04 22:55:29 Wednesday
 @author: Nikhil Kapila
 """
 
-import requests, time
+import logging, re, time
 
 from typing import List, Dict, Optional
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
-from bs4 import BeautifulSoup
+
+import primp
 
 from importlib.resources import as_file
+
+# stdout is the MCP protocol channel in stdio mode, so never print(); log to stderr
+log = logging.getLogger(__name__)
+
+# primp draws HTML tables with box characters, which eat the 10k budget on table-heavy pages
+_BOX_CHARS = re.compile(r"[─-╿]+")
+_TEXT_TYPES = ("text/html", "application/xhtml", "text/plain")
 
 def get_path_str(resource)->str:
     with as_file(resource) as path:
@@ -29,17 +37,21 @@ def fetch_content(url: str, timeout: int = 5) -> Optional[str]:
     """Fetch content from a URL with timeout."""
     try:
         start_time = time.time()
-        response = requests.get(url, timeout=timeout)
+        # impersonating a real browser gets past "set a user agent" walls (Wikipedia,
+        # GitHub) that served plain requests a stub page
+        client = primp.Client(impersonate="random", timeout=timeout, follow_redirects=True)
+        response = client.get(url)
         response.raise_for_status()
-        # requests assumes ISO-8859-1 when the header has no charset, which mangles
-        # UTF-8 pages. Hand bs4 the bytes so it can use the page's <meta charset>.
-        declared = "charset" in response.headers.get("content-type", "").lower()
-        soup = BeautifulSoup(response.content, "html.parser", from_encoding=response.encoding if declared else None)
-        content = soup.get_text(separator=" ", strip=True)
-        print(f"Fetched {url} in {time.time() - start_time:.2f}s")
+        content_type = response.headers.get("content-type", "text/html").lower()
+        if not content_type.startswith(_TEXT_TYPES):
+            log.info("Skipping %s: %s", url, content_type)
+            return None
+        # primp handles the charset (header or <meta>) and drops script/style
+        content = " ".join(_BOX_CHARS.sub(" ", response.text_plain).split())
+        log.debug("Fetched %s in %.2fs", url, time.time() - start_time)
         return content[:10000]  # limitting content to 10k
-    except requests.RequestException as e:
-        print(f"Error fetching {url}: {type(e).__name__} - {str(e)}")
+    except primp.PrimpError as e:
+        log.warning("Error fetching %s: %s - %s", url, type(e).__name__, e)
         return None
 
 def fetch_all_content(results: List[Dict], include_urls:bool=True) -> List[str]:
@@ -64,6 +76,6 @@ def fetch_all_content(results: List[Dict], include_urls:bool=True) -> List[str]:
                         result["url"] = url
                     content_list.append(result)
             except Exception as e:
-                print(f"Request failed with exception: {e}")
+                log.warning("Request failed with exception: %s", e)
         
     return content_list
