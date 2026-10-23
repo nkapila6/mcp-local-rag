@@ -31,3 +31,5 @@ build/
 
 images/
 LICENSE
+
+.venv/
