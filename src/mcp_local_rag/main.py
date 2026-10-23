@@ -8,17 +8,15 @@ def add_score_to_dict(query: str, results: List[Dict]) -> List[Dict]:
     """Add similarity scores to search results."""
     # Import heavy dependencies only when needed (slow import!)
     from importlib.resources import files
-    from mediapipe.tasks.python import text
     from .utils.fetch import fetch_embedder, get_path_str
+    from .utils.embedder import cosine_similarity
     
     path = get_path_str(files('mcp_local_rag.embedder').joinpath('embedder.tflite'))
     embedder = fetch_embedder(path)
     query_embedding = embedder.embed(query)
 
     for i in results:
-        i['score'] = text.TextEmbedder.cosine_similarity(
-                        embedder.embed(i['body']).embeddings[0],
-                        query_embedding.embeddings[0])
+        i['score'] = cosine_similarity(embedder.embed(i['body']), query_embedding)
 
     return results
 

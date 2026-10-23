@@ -12,23 +12,15 @@ from typing import List, Dict, Optional
 from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
 
-from mediapipe.tasks import python
-from mediapipe.tasks.python import text
-
 from importlib.resources import as_file
 
 def get_path_str(resource)->str:
     with as_file(resource) as path:
         return str(path)
     
-def fetch_embedder(path:str, l2_normalize:bool=True, quantize:bool=False):# ->text.text_embedder.TextEmbedder:
-    base_options = python.BaseOptions(model_asset_path=path)
-    options = text.TextEmbedderOptions(
-                            base_options=base_options, 
-                            l2_normalize=l2_normalize, 
-                            quantize=quantize)
-    embedder = text.TextEmbedder.create_from_options(options)
-    return embedder
+def fetch_embedder(path:str, l2_normalize:bool=True):
+    from .embedder import TextEmbedder
+    return TextEmbedder(path, l2_normalize=l2_normalize)
 
 def fetch_content(url: str, timeout: int = 5) -> Optional[str]:
     """Fetch content from a URL with timeout."""
