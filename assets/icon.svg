@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="t">
+  <title id="t">mcpsurfr</title>
+  <style>
+    .accent-s { stroke: #3b6fe0; }
+    .dim-s { stroke: #6e7781; }
+    .lens { fill: #eef2fb; }
+    .pink { fill: #c2255c; }
+    @media (prefers-color-scheme: dark) {
+      .accent-s { stroke: #89b4fa; }
+      .dim-s { stroke: #8b93a6; }
+      .lens { fill: #1c2233; }
+      .pink { fill: #f5c2e7; }
+    }
+  </style>
+  <defs>
+    <clipPath id="glass"><circle cx="54" cy="54" r="40"/></clipPath>
+  </defs>
+  <circle class="lens" cx="54" cy="54" r="40"/>
+  <g clip-path="url(#glass)" fill="none" stroke-linecap="round">
+    <path class="dim-s" stroke-width="4" opacity="0.5" d="M4 80 C18 70 30 70 44 80 S70 90 84 80 S100 70 108 76"/>
+    <path class="accent-s" stroke-width="6" d="M4 64 C16 50 28 48 40 58 S64 74 76 60 S94 44 108 54"/>
+  </g>
+  <circle class="pink" cx="36" cy="45" r="7"/>
+  <circle class="accent-s" cx="54" cy="54" r="40" fill="none" stroke-width="7"/>
+  <path class="accent-s" fill="none" stroke-width="12" stroke-linecap="round" d="M84 84 L112 112"/>
+</svg>

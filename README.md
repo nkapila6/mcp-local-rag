@@ -1,7 +1,5 @@
-<!--<a href='https://github.com/nkapila6/mcpsurfr/'><img src='images/rag.jpeg' width='200' height='200'></a>-->
+<p align="center"><img src="assets/logo.svg" alt="mcpsurfr" width="460"></p>
 
-<!-- omit from toc -->
-# mcpsurfr
 _Formerly [`mcp-local-rag`](https://github.com/nkapila6/mcpsurfr/tree/main-bak)._ "primitive" RAG-like web search model context protocol (MCP) server that runs locally. ✨ no APIs ✨
 
 A RAG-based web search and deep research model context protocol (MCP) server that runs entirely locally. Features multi-engine research across 9+ search backends with semantic similarity ranking, and requires no API keys.
