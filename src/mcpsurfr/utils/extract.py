@@ -20,22 +20,82 @@ _DROP_ROLES = ('//*[@role="navigation" or @role="banner" or @role="contentinfo"'
 _CHROME = re.compile(
     r"(^|[\s_-])(nav|navbar|navigation|menu|masthead|footer|sidebar|breadcrumbs?|cookie|consent"
     r"|banner|social|share|sharing|related|comments?|advert|ads|promo|newsletter|subscribe"
-    r"|skip|toolbar|popup|modal)([\s_-]|$)", re.I)
+    r"|skip|toolbar|popup|modal|toc|spinner|loader|skeleton)([\s_-]|$)", re.I)
 # below this a <main>/<article> is probably a teaser, not the page's content
 _MIN_CONTENT = 500
 
 
 def _text(el) -> str:
-    # itertext + join keeps block elements from gluing words together ("CopilotWrite")
+    # flat text for sizing and link density; itertext + join keeps blocks apart
     return " ".join(" ".join(el.itertext()).split())
+
+
+# tags a browser breaks lines around. Inline tags (span, a, code) join without a
+# space, so highlighted code doesn't come out as "tokio :: spawn ( async {"
+_LINE_TAGS = {"address", "article", "blockquote", "dd", "details", "div", "dl", "dt", "fieldset",
+              "figcaption", "figure", "h1", "h2", "h3", "h4", "h5", "h6", "hr", "li", "main", "ol",
+              "p", "section", "summary", "table", "tbody", "thead", "tfoot", "ul", "caption"}
+_PRE = "\x00"  # wraps preformatted runs so whitespace cleanup leaves them alone
+_BR = "\x01"  # a real line break; newlines in the HTML source are just spaces
+
+
+def _is_pre(el) -> bool:
+    # some sites style <code> as a block instead of using <pre>
+    return el.tag == "pre" or (el.tag == "code" and "\n" in "".join(el.itertext()).strip())
+
+
+def _render(el) -> str:
+    """Text the way a browser lays it out: one line per block, code blocks verbatim,
+    one line per table row with cells split by " | "."""
+    parts = []
+
+    def walk(e, tail):
+        tag = e.tag if isinstance(e.tag, str) else None
+        if tag == "br":
+            parts.append(_BR)
+        elif tag and _is_pre(e):
+            code = "".join(e.itertext()).strip("\n")
+            parts.append(f"{_BR}{_PRE}{code}{_PRE}{_BR}" if code.strip() else _BR)
+        elif tag == "tr":
+            cells = [" ".join(_render(c).split()) for c in e if isinstance(c.tag, str) and c.tag in ("td", "th")]
+            parts.append(_BR + " | ".join(c for c in cells if c) + _BR)
+        elif tag:
+            line = tag in _LINE_TAGS
+            if line:
+                parts.append(_BR)
+            elif tag == "a" and parts and parts[-1][-1:].isalnum() and (e.text or "")[:1].isalnum():
+                # tag clouds and link rows put <a>s back to back: "guide" "security"
+                parts.append(" ")
+            if e.text:
+                parts.append(e.text)
+            for child in e:
+                walk(child, True)
+            if line:
+                parts.append(_BR)
+        if tail and e.tail:
+            parts.append(e.tail)
+
+    try:
+        walk(el, False)
+    except RecursionError:
+        return _text(el)
+    out = []
+    for i, chunk in enumerate("".join(parts).split(_PRE)):
+        if i % 2:
+            chunk = chunk.replace(_BR, "\n").replace("\xa0", " ")
+            out.append("\n".join(line.rstrip() for line in chunk.split("\n")))
+        else:
+            out.extend(" ".join(line.split()) for line in chunk.split(_BR))
+    return "\n".join(line for line in out if line.strip())
 
 
 def extract_main_text(page: str) -> Optional[str]:
     root = _main_root(page)
-    return None if root is None else (_text(root) or None)
+    return None if root is None else (_render(root) or None)
 
 
-_BLOCKS = {"p", "li", "pre", "blockquote", "td", "th", "dd", "dt", "figcaption", "h1", "h2", "h3", "h4", "h5", "h6"}
+# a table row is one block, so its cells stay together
+_BLOCKS = {"p", "li", "pre", "blockquote", "tr", "dd", "dt", "figcaption", "h1", "h2", "h3", "h4", "h5", "h6"}
 _HEADINGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
 
 
@@ -49,7 +109,7 @@ def extract_blocks(page: str) -> List[Tuple[str, str]]:
     for el in root.iter(*_BLOCKS):
         if any(d.tag in _BLOCKS for d in el.iterdescendants()):
             continue
-        text = _text(el)
+        text = _render(el) if el.tag in ("pre", "tr") else " ".join(_render(el).split())
         if not text:
             continue
         if el.tag in _HEADINGS:
@@ -57,9 +117,9 @@ def extract_blocks(page: str) -> List[Tuple[str, str]]:
         else:
             blocks.append((heading, text))
     # sites that put text straight into <div>s give few blocks; fall back to the flat text
-    flat = _text(root)
+    flat = _render(root)
     if sum(len(t) for _, t in blocks) < 0.3 * len(flat):
-        return [("", flat)] if flat else []
+        return [("", line) for line in flat.split("\n")]
     return blocks
 
 
@@ -80,6 +140,11 @@ def _main_root(page: str):
         if _CHROME.search(f"{el.get('class', '')} {el.get('id', '')}") and el.getparent() is not None:
             el.drop_tree()
 
+    for a in doc.xpath('//a[starts-with(@href, "#")]'):
+        if _text(a).lower().startswith("skip") and a.getparent() is not None:
+            a.drop_tree()
+    _drop_link_lists(doc, containers)
+
     # a single real <article> is the content (a GitHub README inside <main>).
     # Many of them is a listing (a news front page), so use the whole <main> there.
     articles = [a for a in doc.xpath("//article") if len(_text(a)) >= _MIN_CONTENT]
@@ -92,3 +157,27 @@ def _main_root(page: str):
         if root is None:
             root = doc
     return root
+
+
+_LINKY = {"div", "ul", "ol", "section", "table", "dl"}
+
+
+def _drop_link_lists(doc, keep) -> None:
+    """Drop blocks that are mostly short links: breadcrumbs, nav menus, version
+    pickers, terse tables of contents. Lists of descriptive links ("PEP 779: Free-
+    threaded Python is officially supported") carry content and stay."""
+    for el in list(doc.iter(*_LINKY)):
+        if el in keep or el.getparent() is None or el.xpath(".//main|.//article"):
+            continue
+        total = len(_text(el))
+        if total < 20:
+            continue
+        links = [_text(a) for a in el.iter("a")]
+        linked = sum(len(t) for t in links)
+        if len(links) < 2 or linked <= 0.5 * total or total - linked >= 200:
+            continue
+        # judge lists by their items: "PEP 649 and PEP 749: Deferred evaluation of
+        # annotations" is several short links but one descriptive item
+        units = [_text(li) for li in el.iter("li")] or links
+        if sum(len(t.split()) for t in units) / len(units) < 4:
+            el.drop_tree()
