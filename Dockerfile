@@ -2,7 +2,7 @@
 #  * UV Docker Example - https://github.com/astral-sh/uv-docker-example/blob/main/multistage.Dockerfile
 #  * SQLite MCP Server Dockerfile - https://github.com/modelcontextprotocol/servers/blob/main/src/sqlite/Dockerfile
 
-FROM ghcr.io/astral-sh/uv:0.7-bookworm-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.13-trixie-slim AS builder
 
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
@@ -44,7 +44,7 @@ RUN mkdir /extra-libs \
 
 # distroless/cc has glibc, which is all the python build and numpy need
 # (plus the two libs above). No shell, no package manager.
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM gcr.io/distroless/cc-debian13:nonroot
 
 WORKDIR /app
 

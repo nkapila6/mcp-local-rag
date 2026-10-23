@@ -8,7 +8,7 @@ A RAG-based web search and deep research model context protocol (MCP) server tha
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nkapila6/mcpsurfr)
 
-[![Add MCP Server mcpsurfr to LM Studio](https://files.lmstudio.ai/deeplink/mcp-install-light.svg)](https://lmstudio.ai/install-mcp?name=mcpsurfr&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLXB5dGhvbj0zLjExIiwiLS1mcm9tIiwiZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS9ua2FwaWxhNi9tY3BzdXJmciIsIm1jcHN1cmZyIl19)
+[![Add MCP Server mcpsurfr to LM Studio](https://files.lmstudio.ai/deeplink/mcp-install-light.svg)](https://lmstudio.ai/install-mcp?name=mcpsurfr&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJnaXQraHR0cHM6Ly9naXRodWIuY29tL25rYXBpbGE2L21jcHN1cmZyIiwibWNwc3VyZnIiXX0%3D)
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/nkapila6/mcpsurfr)
 
@@ -94,7 +94,6 @@ Add this to your MCP server configuration:
     "mcpsurfr":{
       "command": "uvx",
         "args": [
-          "--python=3.11",
           "--from",
           "git+https://github.com/nkapila6/mcpsurfr",
           "mcpsurfr"

@@ -25,7 +25,6 @@ Add to your MCP configuration:
     "mcpsurfr": {
       "command": "uvx",
       "args": [
-        "--python=3.11",
         "--from",
         "git+https://github.com/nkapila6/mcpsurfr",
         "mcpsurfr"
