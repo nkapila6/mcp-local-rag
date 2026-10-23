@@ -31,6 +31,12 @@ def tokens(text: str) -> List[str]:
     return [t for t in _WORD.findall(text.lower()) if t not in _STOP]
 
 
+def _lead_in(buf: str) -> bool:
+    # "The revised deadlines are as follows:" belongs with the list after it.
+    # Capped, so a page of colons can't grow one passage forever.
+    return buf.rstrip().endswith(":") and len(buf) < MAX_PASSAGE_CHARS
+
+
 def build_passages(url: str, blocks: List[Tuple[str, str]]) -> List[Dict]:
     """Merge small blocks under the same heading up to ~600 chars, and split huge
     ones on sentences, so passages are comparable in size."""
@@ -42,18 +48,21 @@ def build_passages(url: str, blocks: List[Tuple[str, str]]) -> List[Dict]:
         if len(text) <= MAX_PASSAGE_CHARS:
             passages.append({"url": url, "heading": heading, "text": text})
             return
+        # code keeps its lines; prose splits on sentences
+        sep = "\n" if "\n" in text else " "
+        units = text.split("\n") if sep == "\n" else re.split(r"(?<=[.!?])\s+", text)
         buf = ""
-        for sentence in re.split(r"(?<=[.!?])\s+", text):
-            if buf and len(buf) + len(sentence) > PASSAGE_CHARS:
+        for unit in units:
+            if buf and len(buf) + len(unit) > PASSAGE_CHARS and not _lead_in(buf):
                 passages.append({"url": url, "heading": heading, "text": buf.strip()})
                 buf = ""
-            buf += sentence + " "
+            buf += unit + sep
         if buf.strip():
             passages.append({"url": url, "heading": heading, "text": buf.strip()[:MAX_PASSAGE_CHARS]})
 
     cur_heading, buf = "", ""
     for heading, text in blocks:
-        full = len(buf) + len(text) > PASSAGE_CHARS
+        full = len(buf) + len(text) > PASSAGE_CHARS and not _lead_in(buf)
         if buf and len(buf) >= MIN_PASSAGE_CHARS and (heading != cur_heading or full):
             emit(cur_heading, buf.strip())
             buf = ""
@@ -102,13 +111,31 @@ def keyword_scores(query: str, keywords: List[str], passages: List[Dict]) -> Lis
     return scores
 
 
-def select(query: str, passages: List[Dict], kscores: List[float], max_passages: int,
+# when nothing matched the keywords, the embedder alone picks: return a few, from
+# different pages. Its raw similarity can't be trusted as a floor (a spam passage
+# scored 0.89, real answers went below 0), so it caps instead of filtering.
+SEMANTIC_MAX = 4
+SEMANTIC_PER_PAGE = 2
+
+
+def matched(query: str, keywords: List[str], passage: Dict) -> float:
+    """Share of the query and keyword terms that appear in the passage. Unlike BM25
+    it means the same in every call: 0 is no overlap at all, 1 is every term."""
+    terms = set(tokens(query)) | {t for k in keywords for t in tokens(k)}
+    if not terms:
+        return 0.0
+    doc = set(tokens(f"{passage['heading']} {passage['text']}"))
+    return round(len(terms & doc) / len(terms), 2)
+
+
+def select(query: str, keywords: List[str], passages: List[Dict], kscores: List[float], max_passages: int,
            embed: Callable[[List[str]], np.ndarray]) -> Tuple[List[Dict], str]:
-    """Pick the best passages. Returns them with a score, plus which tier decided."""
+    """Pick the best passages. Returns them with a "matched" score, plus which tier decided."""
     hits = sorted((i for i, s in enumerate(kscores) if s > 0), key=lambda i: -kscores[i])
+    out = lambda idx: [dict(passages[i], matched=matched(query, keywords, passages[i])) for i in idx]
 
     if hits and len(hits) <= max_passages:
-        return [dict(passages[i], score=round(kscores[i], 3)) for i in hits], "keywords"
+        return out(hits), "keywords"
 
     if hits:
         # too many keyword hits: let the embedder break ties among the best of them
@@ -124,10 +151,16 @@ def select(query: str, passages: List[Dict], kscores: List[float], max_passages:
     vecs = embed([query] + [f"{passages[i]['heading']} {passages[i]['text']}" for i in cand])
     sem = vecs[1:] @ vecs[0]
     if tier == "semantic":
-        combined = sem
-    else:
-        k = np.array([kscores[i] for i in cand])
-        norm = lambda x: (x - x.min()) / (x.max() - x.min() + 1e-9)
-        combined = 0.5 * norm(k) + 0.5 * norm(sem)
-    order = np.argsort(-combined)[:max_passages]
-    return [dict(passages[cand[j]], score=round(float(combined[j]), 3)) for j in order], tier
+        picked, per_page = [], Counter()
+        for j in np.argsort(-sem):
+            url = passages[cand[j]]["url"]
+            if per_page[url] < SEMANTIC_PER_PAGE:
+                per_page[url] += 1
+                picked.append(cand[j])
+            if len(picked) == min(SEMANTIC_MAX, max_passages):
+                break
+        return out(picked), tier
+    k = np.array([kscores[i] for i in cand])
+    norm = lambda x: (x - x.min()) / (x.max() - x.min() + 1e-9)
+    combined = 0.5 * norm(k) + 0.5 * norm(sem)
+    return out([cand[j] for j in np.argsort(-combined)[:max_passages]]), tier

@@ -1,4 +1,4 @@
-import asyncio, base64, logging
+import asyncio, base64, logging, os
 from collections import OrderedDict
 from pathlib import Path
 from typing import List, Dict
@@ -21,6 +21,7 @@ Local web search with on-device re-ranking, no API keys.
 - rag_search_ddgs: full pages as text, for when the user wants whole pages.
 - deep_research: broader topics. Give it 2-5 specific, related search_terms. Default backend is "auto".
 - Google often blocks scrapers. When it returns nothing, the server retries with "auto" and says so.
+- Results list pages that couldn't be used in `skipped`, and engine problems in `warnings`.
 - Cite the source URLs.
 
 Full guide: the skill resource skill://mcpsurfr-search/SKILL.md"""
@@ -37,6 +38,18 @@ mcp = FastMCP("mcpsurfr", instructions=INSTRUCTIONS, website_url="https://github
 # serves the bundled skill as resources, so clients don't have to install it by hand
 mcp.add_provider(SkillsDirectoryProvider(roots=_HERE / "skills"))
 log = logging.getLogger(__name__)
+
+def _budget() -> int:
+    """Characters of page text one call may return, shared across its pages. Set
+    MCPSURFR_MAX_CHARS in the server's env to change it (~4 chars per token)."""
+    raw = os.environ.get("MCPSURFR_MAX_CHARS", "").strip()
+    try:
+        return max(1000, int(raw)) if raw else 40000
+    except ValueError:
+        log.warning("MCPSURFR_MAX_CHARS=%r isn't a number, using 40000", raw)
+        return 40000
+
+MAX_CHARS = _budget()
 
 def add_score_to_dict(query: str, results: List[Dict]) -> List[Dict]:
     """Add similarity scores to search results."""
@@ -58,45 +71,62 @@ def add_score_to_dict(query: str, results: List[Dict]) -> List[Dict]:
 # the search, ranking and fetching below are all blocking, so they run on threads
 # to keep the server answering pings and progress while a search is in flight
 
-async def _search(ctx: Context, query: str, backend: str, max_results: int) -> List[Dict]:
+# warnings go to the client log and into the result: most clients never show the
+# log, and the model should know when an engine was blocked or a fallback ran
+async def _warn(ctx: Context, notes: List[str], message: str) -> None:
+    notes.append(message)
+    await ctx.warning(message)
+
+def _extras(result: Dict, notes: List[str], skipped: List[Dict]) -> Dict:
+    if skipped:
+        result["skipped"] = skipped
+    if notes:
+        result["warnings"] = notes
+    return result
+
+async def _search(ctx: Context, notes: List[str], query: str, backend: str, max_results: int) -> List[Dict]:
     from ddgs import DDGS
     try:
         return await asyncio.to_thread(DDGS().text, query, max_results=max_results, backend=backend)
     except Exception as e:
         # ddgs raises when an engine returns nothing, which is usually a block
         log.warning("Error searching %s for %r: %s", backend, query, e)
-        await ctx.warning(f"{backend} returned no results for {query!r} ({e})")
+        await _warn(ctx, notes, f"{backend} returned no results for {query!r} ({e})")
         return []
 
-async def _fetch(ctx: Context, results: List[Dict], include_urls: bool) -> List[Dict]:
+async def _fetch(ctx: Context, results: List[Dict], include_urls: bool):
+    """Fetch pages best first within MAX_CHARS. Returns (content, skipped)."""
     from mcpsurfr.utils.fetch import fetch_all_content
-    content = await asyncio.to_thread(fetch_all_content, results, include_urls)
-    missing = len([r for r in results if r.get('href')]) - len(content)
-    if missing:
-        await ctx.info(f"{missing} of {len(results)} pages couldn't be fetched (blocked, not HTML, or timed out)")
-    return content
+    urls = [r["href"] for r in results if r.get("href")]
+    content, skipped = await asyncio.to_thread(fetch_all_content, urls, MAX_CHARS)
+    if skipped:
+        await ctx.info(f"{len(skipped)} of {len(urls)} pages skipped (blocked, not a web page, empty or duplicate)")
+    if not include_urls:
+        for page in content:
+            page.pop("url")
+    return content, skipped
 
 async def _rag_search(ctx: Context, query: str, backend: str, num_results: int, top_k: int, include_urls: bool) -> Dict:
     from mcpsurfr.utils.tools import sort_by_score
 
+    notes, result = [], {"backend": backend}
     await ctx.report_progress(0, 3, f"Searching {backend} for {query!r}")
-    results = await _search(ctx, query, backend, num_results)
+    results = await _search(ctx, notes, query, backend, num_results)
     if not results and backend != "auto":
-        await ctx.warning(f"Retrying {query!r} with auto, since {backend} returned nothing")
-        results = await _search(ctx, query, "auto", num_results)
+        await _warn(ctx, notes, f"Retried {query!r} with auto, since {backend} returned nothing")
+        result.update(backend="auto", fallback=True)
+        results = await _search(ctx, notes, query, "auto", num_results)
     if not results:
-        return {"content": []}
+        return _extras(dict(result, content=[]), notes, [])
 
     await ctx.report_progress(1, 3, f"Ranking {len(results)} results")
     scored_results = sort_by_score(await asyncio.to_thread(add_score_to_dict, query, results))
     top_results = scored_results[0:top_k]
 
     await ctx.report_progress(2, 3, f"Fetching {len(top_results)} pages")
-    md_content = await _fetch(ctx, top_results, include_urls)
+    content, skipped = await _fetch(ctx, top_results, include_urls)
     await ctx.report_progress(3, 3, "Done")
-    return {
-        "content": md_content
-            }
+    return _extras(result, notes, skipped) | {"content": content}
 
 @mcp.tool(title="Web search", annotations=_READ_ONLY, icons=[_ICON])
 async def rag_search_ddgs(ctx: Context, query: str, num_results:int=10, top_k:int=5, include_urls:bool=True) -> Dict:
@@ -118,8 +148,10 @@ async def rag_search_ddgs(ctx: Context, query: str, num_results:int=10, top_k:in
                             Default: True
 
     Returns:
-        Dict: {"content": [{"type": "text", "text": <page text, up to 10k chars>, "url": <source>}, ...]}
-              ordered by relevance. Pages that couldn't be fetched are left out.
+        Dict: {"backend", "content": [{"type": "text", "text", "url"}, ...]} ordered by relevance.
+              All pages share one text budget (MCPSURFR_MAX_CHARS, default 40k chars); cut pages
+              have "truncated": true and their full "chars". Also "skipped": [{"url", "reason"}]
+              for pages left out, and "warnings" when an engine failed.
     """
     return await _rag_search(ctx, query, "auto", num_results, top_k, include_urls)
 
@@ -137,7 +169,8 @@ async def rag_search_google(ctx: Context, query: str, num_results:int=10, top_k:
         include_urls (bool): Whether to include each page's source URL.
 
     Returns:
-        Dict: {"content": [{"type": "text", "text": <page text, up to 10k chars>, "url": <source>}, ...]}
+        Same shape as rag_search_ddgs, with "backend": "auto" and "fallback": true when Google
+        returned nothing.
     """
     return await _rag_search(ctx, query, "google", num_results, top_k, include_urls)
 
@@ -197,8 +230,11 @@ async def search(
         backend (str): Search backend, same names as deep_research. Default "auto".
 
     Returns:
-        Dict with "passages": [{"url", "heading", "text", "score"}, ...] best first, and
+        Dict with "passages": [{"url", "heading", "text", "matched"}, ...] best first, and
         "tier" ("keywords", "keywords+semantic" or "semantic") saying what picked them.
+        "matched" is the share of query and keyword terms in the passage (0-1), comparable
+        across calls. Tier "semantic" means nothing matched: at most 4 passages and a "note".
+        "skipped": [{"url", "reason"}] lists pages left out, "warnings" any engine failures.
         If the user asked for full pages: "content": [{"type", "text", "url"}, ...] instead.
     """
     keywords = keywords or []
@@ -209,7 +245,19 @@ async def search(
     while len(_recent) > 8:
         _recent.popitem(last=False)
 
-    result = {k: found[k] for k in ("query", "passages", "tier", "pages_fetched", "passages_considered")}
+    result = _extras({k: found[k] for k in ("query", "passages", "tier", "pages_fetched", "passages_considered")},
+                     found["warnings"], found["skipped"])
+    low = ("Low confidence: no passage contains the query or keyword terms, so these few were picked by "
+           "meaning alone and may be unrelated. Retry with different keywords or synonyms, rephrase the "
+           "query, or use rag_search_ddgs for full pages.")
+    if found["tier"] != "semantic" and found["keywords_missing"]:
+        # common query words ("quantum", "cheese") matched, but none of the terms a real
+        # answer would contain did: same doubt, same treatment as the semantic tier
+        from mcpsurfr.utils.passages import SEMANTIC_MAX
+        result["passages"] = result["passages"][:SEMANTIC_MAX]
+        result["note"] = ("Low confidence: none of the keywords appear on the fetched pages, only common "
+                          "query words. Retry with different keywords or synonyms, rephrase the query, or "
+                          "use rag_search_ddgs for full pages.")
     if found["tier"] != "semantic" or not found["pages"]:
         return result
 
@@ -217,7 +265,7 @@ async def search(
     message = (f"No passage matched the keywords for {query!r}, so these were picked by "
                "meaning alone and may be off. Return the full pages instead? (about 10x more text)")
     if not _can_ask(ctx):
-        result["note"] = "Low confidence: nothing matched the keywords. rag_search_ddgs returns full pages."
+        result["note"] = low
         return result
     if ctx._is_modern_protocol():
         if ctx.input_responses is None:
@@ -233,25 +281,26 @@ async def search(
             wants_pages = False
     if not wants_pages:
         return result
-    return {"query": query, "content": [
-        {"type": "text", "text": " ".join(t for _, t in blocks)[:10000], "url": url}
-        for url, blocks in found["pages"].items()
-    ]}
+    from mcpsurfr.utils.fetch import fit_budget
+    pages = [{"url": u, "text": "\n".join(t for _, t in blocks)} for u, blocks in found["pages"].items()]
+    return {"query": query, "content": fit_budget(pages, MAX_CHARS)}
 
 async def _find_passages(ctx: Context, query: str, keywords: List[str], num_results: int,
                          top_pages: int, max_passages: int, backend: str) -> Dict:
     from mcpsurfr.utils.fetch import fetch_all_blocks
-    from mcpsurfr.utils.passages import build_passages, keyword_scores, select
+    from mcpsurfr.utils.passages import build_passages, keyword_scores, select, tokens
 
-    empty = {"query": query, "passages": [], "tier": None, "pages_fetched": 0, "passages_considered": 0, "pages": {}}
+    notes = []
+    empty = {"query": query, "passages": [], "tier": None, "pages_fetched": 0, "passages_considered": 0,
+             "pages": {}, "skipped": [], "warnings": notes, "keywords_missing": False}
     if backend not in BACKENDS:
-        await ctx.warning(f"Unknown backend {backend!r}, using auto. Available: {', '.join(BACKENDS)}")
+        await _warn(ctx, notes, f"Unknown backend {backend!r}, used auto. Available: {', '.join(BACKENDS)}")
         backend = "auto"
     await ctx.report_progress(0, 4, f"Searching {backend} for {query!r}")
-    results = await _search(ctx, query, backend, num_results)
+    results = await _search(ctx, notes, query, backend, num_results)
     if not results and backend != "auto":
-        await ctx.warning(f"Retrying {query!r} with auto, since {backend} returned nothing")
-        results = await _search(ctx, query, "auto", num_results)
+        await _warn(ctx, notes, f"Retried {query!r} with auto, since {backend} returned nothing")
+        results = await _search(ctx, notes, query, "auto", num_results)
     results = [r for r in results if r.get("href")]
     if not results:
         return empty
@@ -265,9 +314,9 @@ async def _find_passages(ctx: Context, query: str, keywords: List[str], num_resu
     urls = [r["href"] for r, _ in ranked[:top_pages]]
 
     await ctx.report_progress(2, 4, f"Fetching {len(urls)} pages")
-    pages = await asyncio.to_thread(fetch_all_blocks, urls)
-    if len(pages) < len(urls):
-        await ctx.info(f"{len(urls) - len(pages)} of {len(urls)} pages couldn't be fetched (blocked, not HTML, or timed out)")
+    pages, skipped = await asyncio.to_thread(fetch_all_blocks, urls)
+    if skipped:
+        await ctx.info(f"{len(skipped)} of {len(urls)} pages skipped (blocked, not a web page, empty or duplicate)")
     passages, seen = [], set()
     for url in urls:
         for p in build_passages(url, pages.get(url, [])):
@@ -281,10 +330,17 @@ async def _find_passages(ctx: Context, query: str, keywords: List[str], num_resu
     await ctx.report_progress(3, 4, f"Scoring {len(passages)} passages")
     scores = keyword_scores(query, keywords, passages)
     embedder = await asyncio.to_thread(_embedder)
-    chosen, tier = await asyncio.to_thread(select, query, passages, scores, max_passages, embedder.embed_batch)
+    chosen, tier = await asyncio.to_thread(select, query, keywords, passages, scores, max_passages, embedder.embed_batch)
     await ctx.report_progress(4, 4, "Done")
     return {"query": query, "passages": chosen, "tier": tier, "pages_fetched": len(pages),
-            "passages_considered": len(passages), "pages": {u: pages[u] for u in urls if u in pages}}
+            "passages_considered": len(passages), "pages": {u: pages[u] for u in urls if u in pages},
+            "skipped": skipped, "warnings": notes, "keywords_missing": _keywords_missing(keywords, passages, tokens)}
+
+def _keywords_missing(keywords: List[str], passages: List[Dict], tokens) -> bool:
+    wanted = {t for k in keywords for t in tokens(k)}
+    if not wanted:
+        return False
+    return not any(wanted & set(tokens(f"{p['heading']} {p['text']}")) for p in passages)
 
 def _embedder():
     from importlib.resources import files
@@ -307,10 +363,11 @@ async def _deep_research_internal(ctx: Context, search_terms:List[str], backends
     """
     from mcpsurfr.utils.tools import sort_by_score
 
+    notes, fallback = [], None
     # ddgs would silently swap an unknown name for "auto", so say so instead
     unknown = [b for b in backends if b not in BACKENDS]
     if unknown:
-        await ctx.warning(f"Unknown backends {unknown} skipped. Available: {', '.join(BACKENDS)}")
+        await _warn(ctx, notes, f"Unknown backends {unknown} skipped. Available: {', '.join(BACKENDS)}")
     backends = [b for b in backends if b in BACKENDS] or ["auto"]
 
     all_results = []
@@ -325,7 +382,7 @@ async def _deep_research_internal(ctx: Context, search_terms:List[str], backends
         for backend in backends:
             await ctx.report_progress(step, total, f"Searching {backend} for {term!r}")
             step += 1
-            results = await _search(ctx, term, backend, num_results_per_term)
+            results = await _search(ctx, notes, term, backend, num_results_per_term)
             if results:
                 scored_results = sort_by_score(await asyncio.to_thread(add_score_to_dict, term, results))
                 top_results = scored_results[0:top_k_per_term]
@@ -334,9 +391,10 @@ async def _deep_research_internal(ctx: Context, search_terms:List[str], backends
 
     # every chosen engine came back empty (Google blocking, usually): fall back to auto
     if not all_results and backends != ["auto"]:
-        await ctx.warning(f"{', '.join(backends)} returned nothing, retrying every term with auto")
+        await _warn(ctx, notes, f"{', '.join(backends)} returned nothing, retried every term with auto")
+        fallback = "auto"
         for term in search_terms:
-            results = await _search(ctx, term, "auto", num_results_per_term)
+            results = await _search(ctx, notes, term, "auto", num_results_per_term)
             if results:
                 scored_results = sort_by_score(await asyncio.to_thread(add_score_to_dict, term, results))
                 all_results.extend(scored_results[0:top_k_per_term])
@@ -358,16 +416,14 @@ async def _deep_research_internal(ctx: Context, search_terms:List[str], backends
 
     # fetch content from final list of results
     await ctx.report_progress(step, total, f"Fetching {len(unique_results)} pages")
-    md_content = await _fetch(ctx, unique_results, include_urls)
+    content, skipped = await _fetch(ctx, unique_results, include_urls)
     await ctx.report_progress(total, total, "Done")
 
-    return {
-        "search_terms": search_terms,
-        "backends": backends,
-        "search_summary": search_summary,
-        "total_unique_results": len(unique_results),
-        "content": md_content
-    }
+    result = {"search_terms": search_terms, "backends": backends}
+    if fallback:
+        result["fallback"] = fallback
+    result.update(search_summary=search_summary, total_unique_results=len(unique_results))
+    return _extras(result, notes, skipped) | {"content": content}
 
 @mcp.tool(title="Deep research", annotations=_READ_ONLY, icons=[_ICON])
 async def deep_research(
@@ -399,8 +455,11 @@ async def deep_research(
         include_urls (bool): Whether to include each page's source URL.
 
     Returns:
-        Dict with search_terms, backends, search_summary (results kept per term and backend),
-        total_unique_results, and content: [{"type": "text", "text": ..., "url": ...}, ...].
+        Dict with search_terms, backends ("fallback": "auto" if they all came back empty),
+        search_summary (results kept per term and backend), total_unique_results, "skipped"
+        (pages left out, with reasons), "warnings", and content: [{"type": "text", "text", "url"}, ...].
+        All pages share one text budget (MCPSURFR_MAX_CHARS, default 40k chars), so more
+        terms means less text per page; cut pages have "truncated": true and their full "chars".
     """
 
     # safe default if none is given
