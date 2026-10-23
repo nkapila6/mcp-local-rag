@@ -23,9 +23,9 @@ What's in it:
 
 - **No API keys.** Searches go through [ddgs](https://github.com/deedy5/ddgs). Its `auto` mode asks several engines at once and skips blocked ones.
 - **Ranked locally.** A small MobileBERT model on plain numpy re-ranks results, so only the best pages get fetched.
-- **Clean text.** Pages are fetched with browser impersonation, and only the main content is kept: no menus, cookie banners or footers.
+- **Clean text.** Pages are fetched with browser impersonation, and only the main content is kept: no menus, cookie banners or footers. Code blocks and tables keep their lines. The same page under two URLs comes back once.
 - **Passages instead of pages.** `search` returns just the paragraphs that answer the question, about a tenth of the tokens. When nothing matches well, it can ask you whether you want the full pages instead.
-- **Talks back.** Progress while it works, and warnings when an engine comes back empty. Google blocks often, so it falls back to `auto` on its own.
+- **Says what it left out.** Results list skipped pages with a reason (blocked, PDF, duplicate...), cut pages are marked `truncated`, and fallbacks and engine failures show up as `warnings`. Google blocks often, so it falls back to `auto` on its own.
 - **Brings its own guide.** It serves a skill and a `research` prompt, so clients pick up how to use it without setup.
 
 | Tool | Use it for |
@@ -65,6 +65,8 @@ Or with Docker (amd64 and arm64):
   }
 }
 ```
+
+Full-page tools share a 40k-character budget per call (about 10k tokens). To change it, add `"env": {"MCPSURFR_MAX_CHARS": "80000"}` to the server entry.
 
 Not sure where your config lives? See the [MCP quickstart](https://modelcontextprotocol.io/quickstart/user). Tested with Claude Desktop, Claude Code, Cursor and Goose.
 
