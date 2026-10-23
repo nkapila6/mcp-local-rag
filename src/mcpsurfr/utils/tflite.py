@@ -283,19 +283,48 @@ class Interpreter:
 
     def _plan(self, shapes):
         """Run once with dummy inputs of these shapes to precompute everything that
-        only depends on shapes and constants (~40% of this graph is shape math)."""
+        only depends on shapes and constants (~40% of this graph is shape math).
+        Also works out when each intermediate can be freed: keeping all of them
+        alive until the end peaked at ~1.3GB for a 10x128 batch."""
+        last_read = {}
+        for k, (_, ins, _, _) in enumerate(self.ops):
+            for i in ins:
+                if i >= 0:
+                    last_read[i] = k
+        keep = set(self.outputs)
+
         v = dict(self.consts)
         static = set(self.consts)
         for i, s in zip(self.inputs, shapes):
             v[i] = np.zeros(s, self.dtypes[i])
         dynamic_ops = []
-        for name, ins, outs, o in self.ops:
+        for k, (name, ins, outs, o) in enumerate(self.ops):
             self._run_op(name, ins, outs, o, v)
             if name == "SHAPE" or all(i < 0 or i in static for i in ins):
                 static.add(outs[0])
             else:
                 dynamic_ops.append((name, ins, outs, o))
-        return {i: v[i] for i in static}, dynamic_ops
+            for i in ins:
+                if i >= 0 and last_read[i] == k and i not in static and i not in keep:
+                    v.pop(i, None)
+
+        # same for the dynamic-only runs: free each tensor after its last reader
+        dyn_last = {}
+        for k, (_, ins, _, _) in enumerate(dynamic_ops):
+            for i in ins:
+                if i >= 0 and i not in static:
+                    dyn_last[i] = k
+        frees = [[] for _ in dynamic_ops]
+        for i, k in dyn_last.items():
+            if i not in keep:
+                frees[k].append(i)
+        # outputs nobody reads in this run: many layer outputs only fed SHAPE ops,
+        # which the plan already folded away. Left alone they held ~240MB per run.
+        for k, (_, _, outs, _) in enumerate(dynamic_ops):
+            for i in outs:
+                if i not in dyn_last and i not in keep:
+                    frees[k].append(i)
+        return {i: v[i] for i in static}, [(op, tuple(f)) for op, f in zip(dynamic_ops, frees)]
 
     @property
     def input_names(self):
@@ -312,6 +341,8 @@ class Interpreter:
         v = dict(static)
         for i, a in zip(self.inputs, arrays):
             v[i] = a.astype(self.dtypes[i], copy=False)
-        for name, ins, outs, o in dynamic_ops:
+        for (name, ins, outs, o), free in dynamic_ops:
             self._run_op(name, ins, outs, o, v)
+            for i in free:
+                del v[i]
         return [v[i] for i in self.outputs]
