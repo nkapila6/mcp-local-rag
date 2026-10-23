@@ -2,8 +2,9 @@
   "entrypoint": "src/mcp_local_rag/main.py",
   "environment": {
     "dependencies": [
-      "duckduckgo-search",
-      "mediapipe",
+      "ddgs",
+      "ai-edge-litert",
+      "numpy",
       "beautifulsoup4",
       "requests"
     ]
