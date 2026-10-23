@@ -46,6 +46,9 @@ RUN mkdir /extra-libs \
 # (plus the two libs above). No shell, no package manager.
 FROM gcr.io/distroless/cc-debian13:nonroot
 
+# the MCP registry checks this matches "name" in server.json to verify we own the image
+LABEL io.modelcontextprotocol.server.name="io.github.nkapila6/mcpsurfr"
+
 WORKDIR /app
 
 COPY --from=builder /python /python

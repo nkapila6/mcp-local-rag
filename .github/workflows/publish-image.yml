@@ -14,10 +14,31 @@ permissions:
   contents: read
 
 jobs:
+  # Tags come from ./create_tag.sh, which bumps these files first. A tag pushed
+  # by hand that doesn't match would publish an image with the wrong version.
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Tag must match pyproject.toml, package.json and server.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          py=$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          js=$(python3 -c 'import json; print(json.load(open("skills/mcpsurfr-search/package.json"))["version"])')
+          sv=$(python3 -c 'import json; print(json.load(open("server.json"))["version"])')
+          img=$(python3 -c 'import json; print(json.load(open("server.json"))["packages"][0]["identifier"].rsplit(":", 1)[1])')
+          echo "tag=$tag pyproject.toml=$py package.json=$js server.json=$sv image=$img"
+          if [ "$tag" != "$py" ] || [ "$tag" != "$js" ] || [ "$tag" != "$sv" ] || [ "v$tag" != "$img" ]; then
+            echo "::error::tag v$tag doesn't match the versions in the repo. Release with ./create_tag.sh"
+            exit 1
+          fi
+
   # Docker's reusable builder runs each platform on its own native runner
   # (arm64 on GitHub's arm runners, no QEMU) and merges them into one
   # multi-arch tag.
   publish-docker-image:
+    needs: check-version
     uses: docker/github-builder/.github/workflows/build.yml@v1
     permissions:
       contents: read
@@ -31,9 +52,6 @@ jobs:
       meta-tags: |
         type=ref,event=tag
         type=raw,value=latest
-      # MCP registry matches images to servers by this label
-      meta-labels: |
-        io.modelcontextprotocol.server.name=io.github.${{ github.repository }}
       cache: true
       cache-mode: max
     secrets:
@@ -41,3 +59,40 @@ jobs:
         - registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+  # The registry pulls the image to check its io.modelcontextprotocol.server.name
+  # label (set in the Dockerfile), so this has to run after the push.
+  publish-mcp-registry:
+    needs: publish-docker-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # GitHub OIDC login for the io.github.nkapila6/* namespace
+    env:
+      MCP_PUBLISHER_VERSION: v1.8.1
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install mcp-publisher
+        run: |
+          curl -sSfL "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+
+      - name: Publish to MCP Registry
+        run: |
+          ./mcp-publisher validate server.json
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish server.json
+
+  # only after the image is up, so a release never points at a missing image
+  github-release:
+    needs: publish-docker-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes \
+            --notes "Docker: \`ghcr.io/${GITHUB_REPOSITORY,,}:$GITHUB_REF_NAME\`"
