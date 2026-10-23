@@ -31,7 +31,11 @@ def fetch_content(url: str, timeout: int = 5) -> Optional[str]:
         start_time = time.time()
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
-        content = BeautifulSoup(response.text, "html.parser").get_text(separator=" ", strip=True)
+        # requests assumes ISO-8859-1 when the header has no charset, which mangles
+        # UTF-8 pages. Hand bs4 the bytes so it can use the page's <meta charset>.
+        declared = "charset" in response.headers.get("content-type", "").lower()
+        soup = BeautifulSoup(response.content, "html.parser", from_encoding=response.encoding if declared else None)
+        content = soup.get_text(separator=" ", strip=True)
         print(f"Fetched {url} in {time.time() - start_time:.2f}s")
         return content[:10000]  # limitting content to 10k
     except requests.RequestException as e:
