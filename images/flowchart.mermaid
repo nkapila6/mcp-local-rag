@@ -1,8 +1,8 @@
 flowchart TD
     A[User] -->|1.Submits LLM Query| B[Language Model]
-    B -->|2.Sends Query| C[mcp-local-rag Tool]
+    B -->|2.Sends Query| C[mcpsurfr Tool]
     
-    subgraph mcp-local-rag Processing
+    subgraph mcpsurfr Processing
     C -->|Search DuckDuckGo| D[Fetch 10 search results]
     D -->|Fetch Embeddings| E["Embeddings from MobileBERT (int8, plain numpy)"]
     E -->|Compute Similarity| F[Rank Entries Against Query]

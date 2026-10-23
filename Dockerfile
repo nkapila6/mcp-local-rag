@@ -2,7 +2,7 @@
 #  * UV Docker Example - https://github.com/astral-sh/uv-docker-example/blob/main/multistage.Dockerfile
 #  * SQLite MCP Server Dockerfile - https://github.com/modelcontextprotocol/servers/blob/main/src/sqlite/Dockerfile
 
-FROM ghcr.io/astral-sh/uv:0.7-bookworm-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.13-trixie-slim AS builder
 
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=/app/uv.lock \
     uv sync --frozen --no-install-project --no-dev --no-editable
 
-COPY ./src/mcp_local_rag /app/mcp_local_rag
+COPY ./src/mcpsurfr /app/mcpsurfr
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
@@ -34,9 +34,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN find .venv/lib/python3.*/site-packages -type d \( -name tests -o -name test \) -prune -exec rm -rf {} + \
     && find .venv /python -name '*.pyi' -delete \
     && cd /python/cpython-* \
-    && rm -rf include share lib/libpython3* lib/pkgconfig lib/tcl* lib/tk* lib/itcl* lib/thread* lib/Tix* \
+    && rm -rf include share lib/libpython3* lib/pkgconfig lib/tcl* lib/tk* lib/libtcl* lib/libtk* lib/itcl* lib/thread* lib/Tix* \
     && cd lib/python3.* \
-    && rm -rf test idlelib tkinter turtledemo ensurepip lib2to3 site-packages/*
+    && rm -rf test idlelib tkinter turtledemo ensurepip lib2to3 site-packages/* lib-dynload/_tkinter*
 
 # distroless/cc doesn't ship these: numpy needs libz, stdlib _crypt needs libcrypt
 RUN mkdir /extra-libs \
@@ -44,7 +44,7 @@ RUN mkdir /extra-libs \
 
 # distroless/cc has glibc, which is all the python build and numpy need
 # (plus the two libs above). No shell, no package manager.
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM gcr.io/distroless/cc-debian13:nonroot
 
 WORKDIR /app
 
@@ -57,4 +57,4 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH=/app \
     LD_LIBRARY_PATH=/usr/local/lib
 
-ENTRYPOINT ["/app/.venv/bin/mcp-local-rag"]
+ENTRYPOINT ["/app/.venv/bin/mcpsurfr"]

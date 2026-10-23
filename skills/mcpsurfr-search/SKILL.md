@@ -1,11 +1,11 @@
 ---
-name: local-rag-search
-description: Efficiently perform web searches using the mcp-local-rag server with semantic similarity ranking. Use this skill when you need to search the web for current information, research topics across multiple sources, or gather context from the internet without using external APIs. This skill teaches effective use of RAG-based web search with DuckDuckGo, Google, and multi-engine deep research capabilities.
+name: mcpsurfr-search
+description: Efficiently perform web searches using the mcpsurfr server with semantic similarity ranking. Use this skill when you need to search the web for current information, research topics across multiple sources, or gather context from the internet without using external APIs. This skill teaches effective use of RAG-based web search with DuckDuckGo, Google, and multi-engine deep research capabilities.
 ---
 
 # Local RAG Search Skill
 
-This skill enables you to effectively use the mcp-local-rag MCP server for intelligent web searches with semantic ranking. The server performs RAG-like similarity scoring to prioritize the most relevant results without requiring any external APIs.
+This skill enables you to effectively use the mcpsurfr MCP server for intelligent web searches with semantic ranking. The server performs RAG-like similarity scoring to prioritize the most relevant results without requiring any external APIs.
 
 ## Available Tools
 

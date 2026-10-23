@@ -1,6 +1,6 @@
-# Agent Skills for mcp-local-rag
+# Agent Skills for mcpsurfr
 
-This folder contains Agent Skills that teach Claude how to effectively use the mcp-local-rag MCP server.
+This folder contains Agent Skills that teach Claude how to effectively use the mcpsurfr MCP server.
 
 ## What are Agent Skills?
 
@@ -14,9 +14,9 @@ Learn more at: https://github.com/anthropics/skills
 
 ## Available Skills
 
-### local-rag-search
+### mcpsurfr-search
 
-Teaches Claude how to effectively use the mcp-local-rag web search tools with semantic similarity ranking.
+Teaches Claude how to effectively use the mcpsurfr web search tools with semantic similarity ranking.
 
 **Use this skill when you need to:**
 - Search the web for current information
@@ -30,7 +30,7 @@ Teaches Claude how to effectively use the mcp-local-rag web search tools with se
 
 1. Navigate to **Settings** → **Skills**
 2. Click **Add Skill** → **Add from folder**
-3. Select the skill folder (e.g., `skills/local-rag-search/`)
+3. Select the skill folder (e.g., `skills/mcpsurfr-search/`)
 4. The skill will now be available in your conversations
 
 ### In Claude Code (via Plugin Marketplace)
@@ -55,4 +55,4 @@ When the MCP server is configured and the skill is loaded, simply mention the ta
 "Find information about quantum computing breakthroughs"
 ```
 
-Claude will automatically use the skill to guide its use of the mcp-local-rag tools.
+Claude will automatically use the skill to guide its use of the mcpsurfr tools.

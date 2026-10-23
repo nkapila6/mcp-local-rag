@@ -8,10 +8,10 @@ def add_score_to_dict(query: str, results: List[Dict]) -> List[Dict]:
     """Add similarity scores to search results."""
     # Import heavy dependencies only when needed (slow import!)
     from importlib.resources import files
-    from mcp_local_rag.utils.fetch import fetch_embedder, get_path_str
-    from mcp_local_rag.utils.embedder import cosine_similarity
+    from mcpsurfr.utils.fetch import fetch_embedder, get_path_str
+    from mcpsurfr.utils.embedder import cosine_similarity
     
-    path = get_path_str(files('mcp_local_rag.embedder').joinpath('embedder.tflite'))
+    path = get_path_str(files('mcpsurfr.embedder').joinpath('embedder.tflite'))
     embedder = fetch_embedder(path)
     query_embedding = embedder.embed(query)
     bodies = embedder.embed_batch([i['body'] for i in results])
@@ -55,8 +55,8 @@ def rag_search_ddgs(query: str, num_results:int=10, top_k:int=5, include_urls:bo
     
     # Import heavy dependencies only when tool is invoked
     from ddgs import DDGS
-    from mcp_local_rag.utils.fetch import fetch_all_content
-    from mcp_local_rag.utils.tools import sort_by_score
+    from mcpsurfr.utils.fetch import fetch_all_content
+    from mcpsurfr.utils.tools import sort_by_score
     
     ddgs = DDGS()
     results = ddgs.text(query, max_results=num_results) 
@@ -92,8 +92,8 @@ def rag_search_google(query: str, num_results:int=10, top_k:int=5, include_urls:
     """
     # Import heavy dependencies only when tool is invoked
     from ddgs import DDGS
-    from mcp_local_rag.utils.fetch import fetch_all_content
-    from mcp_local_rag.utils.tools import sort_by_score
+    from mcpsurfr.utils.fetch import fetch_all_content
+    from mcpsurfr.utils.tools import sort_by_score
     
     ddgs = DDGS()
     results = ddgs.text(query, max_results=num_results, backend="google") 
@@ -125,8 +125,8 @@ def _deep_research_internal(search_terms:List[str], backends:List[str], num_resu
 
     # lazy load
     from ddgs import DDGS
-    from mcp_local_rag.utils.fetch import fetch_all_content
-    from mcp_local_rag.utils.tools import sort_by_score
+    from mcpsurfr.utils.fetch import fetch_all_content
+    from mcpsurfr.utils.tools import sort_by_score
 
     ddgs = DDGS()
     all_results = []
