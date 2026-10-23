@@ -1,23 +1,12 @@
+%%{init: {'theme': 'base'}}%%
 flowchart TD
-    A[User] -->|1.Submits LLM Query| B[Language Model]
-    B -->|2.Sends Query| C[mcpsurfr Tool]
-    
-    subgraph mcpsurfr Processing
-    C -->|Search via ddgs| D[Fetch 10 search results]
-    D -->|Fetch Embeddings| E["Embeddings from MobileBERT (int8, plain numpy)"]
-    E -->|Compute Similarity| F[Rank Entries Against Query]
-    F -->|Select top k results| G[Context Extraction from URL]
-    end
-    
-    G -->|Returns page text with sources| B
-    B -->|3.Generated response with context| H[Final LLM Output]
-    H -->|5.Present result to user| A
-
-    classDef default fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef process fill:#bbf,stroke:#333,stroke-width:2px;
-    classDef input fill:#9f9,stroke:#333,stroke-width:2px;
-    classDef output fill:#ff9,stroke:#333,stroke-width:2px;
-
-    class A input;
-    class B,C process;
-    class G output;
+    A[LLM] -->|query| S["Search with ddgs (auto: several engines, no keys)"]
+    S -->|"rag_search, deep_research"| R["Re-rank results locally (MobileBERT on numpy)"]
+    R --> P[Fetch top pages, keep the main content]
+    P -->|page text + URLs| A
+    S -->|search| T1["Tier 1: pick pages by their snippets"]
+    T1 --> T2["Tier 2: split into passages, keyword match (BM25)"]
+    T2 -->|few hits| OUT["Best passages + URLs (about 800 tokens)"]
+    T2 -->|too many or none| T3[Tier 3: rank them by meaning]
+    T3 --> OUT
+    OUT --> A
