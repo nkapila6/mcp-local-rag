@@ -7,7 +7,7 @@ Uses lxml, which ddgs already depends on.
 """
 
 import re
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from lxml import html as lxml_html
 from lxml.etree import ParserError
@@ -31,6 +31,39 @@ def _text(el) -> str:
 
 
 def extract_main_text(page: str) -> Optional[str]:
+    root = _main_root(page)
+    return None if root is None else (_text(root) or None)
+
+
+_BLOCKS = {"p", "li", "pre", "blockquote", "td", "th", "dd", "dt", "figcaption", "h1", "h2", "h3", "h4", "h5", "h6"}
+_HEADINGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+
+
+def extract_blocks(page: str) -> List[Tuple[str, str]]:
+    """Main content as (nearest heading, text) blocks, in page order, for passage
+    search. Only leaf blocks count, so a <li> holding a <p> isn't emitted twice."""
+    root = _main_root(page)
+    if root is None:
+        return []
+    blocks, heading = [], ""
+    for el in root.iter(*_BLOCKS):
+        if any(d.tag in _BLOCKS for d in el.iterdescendants()):
+            continue
+        text = _text(el)
+        if not text:
+            continue
+        if el.tag in _HEADINGS:
+            heading = text
+        else:
+            blocks.append((heading, text))
+    # sites that put text straight into <div>s give few blocks; fall back to the flat text
+    flat = _text(root)
+    if sum(len(t) for _, t in blocks) < 0.3 * len(flat):
+        return [("", flat)] if flat else []
+    return blocks
+
+
+def _main_root(page: str):
     try:
         doc = lxml_html.fromstring(page)
     except (ParserError, ValueError):
@@ -58,4 +91,4 @@ def extract_main_text(page: str) -> Optional[str]:
         root = max(sized, key=lambda x: x[0])[1] if sized else doc.find("body")
         if root is None:
             root = doc
-    return _text(root) or None
+    return root
