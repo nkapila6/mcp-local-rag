@@ -1,11 +1,11 @@
 {
-  "entrypoint": "src/mcp_local_rag/main.py",
+  "$schema": "https://gofastmcp.com/public/schemas/fastmcp.json/v1.json",
+  "source": {
+    "path": "src/mcp_local_rag/main.py",
+    "entrypoint": "mcp"
+  },
   "environment": {
-    "dependencies": [
-      "duckduckgo-search",
-      "mediapipe",
-      "beautifulsoup4",
-      "requests"
-    ]
+    "type": "uv",
+    "project": "."
   }
 }

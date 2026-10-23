@@ -2,18 +2,20 @@
 #  * UV Docker Example - https://github.com/astral-sh/uv-docker-example/blob/main/multistage.Dockerfile
 #  * SQLite MCP Server Dockerfile - https://github.com/modelcontextprotocol/servers/blob/main/src/sqlite/Dockerfile
 
-FROM ghcr.io/astral-sh/uv:0.7-python3.10-bookworm-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.7-bookworm-slim AS builder
 
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
-# Disable Python downloads, because we want to use the system interpreter
-# across both images.
-ENV UV_PYTHON_DOWNLOADS=0
+# uv-managed python lives at a fixed path so the venv still resolves after
+# both get copied into the distroless image
+ENV UV_PYTHON_INSTALL_DIR=/python UV_PYTHON_PREFERENCE=only-managed
 
 WORKDIR /app
 
 COPY uv.lock pyproject.toml README.md .python-version /app/
+
+RUN uv python install
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=/app/pyproject.toml \
@@ -25,27 +27,34 @@ COPY ./src/mcp_local_rag /app/mcp_local_rag
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
-# Then, use a final image without uv
-FROM python:3.10-slim-bookworm
+# Trim things we never load at runtime: test suites, type stubs, and stdlib
+# modules that can't work without a display. The python binary is statically
+# linked, so libpython.so is only for embedding, and the base interpreter's
+# pip/setuptools are never used by the venv.
+RUN find .venv/lib/python3.*/site-packages -type d \( -name tests -o -name test \) -prune -exec rm -rf {} + \
+    && find .venv /python -name '*.pyi' -delete \
+    && cd /python/cpython-* \
+    && rm -rf include share lib/libpython3* lib/pkgconfig lib/tcl* lib/tk* lib/itcl* lib/thread* lib/Tix* \
+    && cd lib/python3.* \
+    && rm -rf test idlelib tkinter turtledemo ensurepip lib2to3 site-packages/*
+
+# distroless/cc doesn't ship these: numpy needs libz, stdlib _crypt needs libcrypt
+RUN mkdir /extra-libs \
+    && cp -L /lib/$(uname -m)-linux-gnu/libz.so.1 /lib/$(uname -m)-linux-gnu/libcrypt.so.1 /extra-libs/
+
+# distroless/cc has glibc, which is all the python build and numpy need
+# (plus the two libs above). No shell, no package manager.
+FROM gcr.io/distroless/cc-debian12:nonroot
 
 WORKDIR /app
 
-# Install system dependencies for OpenCV + MediaPipe
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
-RUN groupadd -r app && useradd -r -g app app
-
-# Copy the application from the builder
-COPY --from=builder --chown=app:app /app /app
+COPY --from=builder /python /python
+COPY --from=builder /app /app
+COPY --from=builder /extra-libs/ /usr/local/lib/
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH" \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    LD_LIBRARY_PATH=/usr/local/lib
 
-USER app
-
-ENTRYPOINT ["mcp-local-rag"]
+ENTRYPOINT ["/app/.venv/bin/mcp-local-rag"]

@@ -10,44 +10,34 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
+  # Docker's reusable builder runs each platform on its own native runner
+  # (arm64 on GitHub's arm runners, no QEMU) and merges them into one
+  # multi-arch tag.
   publish-docker-image:
-    runs-on: ubuntu-latest
+    uses: docker/github-builder/.github/workflows/build.yml@v1
     permissions:
       contents: read
       packages: write
-      attestations: write
-      id-token: write
-
-    env:
-      IMAGE: ghcr.io/${{ github.repository }}
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Normalize image name
-        run: echo "IMAGE=${IMAGE,,}" >> $GITHUB_ENV
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
+      id-token: write # signs the build attestations
+    with:
+      output: image
+      push: true
+      platforms: linux/amd64,linux/arm64
+      meta-images: ghcr.io/${{ github.repository }}
+      meta-tags: |
+        type=ref,event=tag
+        type=raw,value=latest
+      # MCP registry matches images to servers by this label
+      meta-labels: |
+        io.modelcontextprotocol.server.name=io.github.${{ github.repository }}
+      cache: true
+      cache-mode: max
+    secrets:
+      registry-auths: |
+        - registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: true
-          platforms: linux/amd64
-          tags: |
-            ${{ env.IMAGE }}:${{ github.ref_name }}
-            ${{ env.IMAGE }}:latest
-          labels: |
-            io.modelcontextprotocol.server.name="io.github.${{ env.IMAGE }}"
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

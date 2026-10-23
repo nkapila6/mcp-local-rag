@@ -10,10 +10,8 @@ import requests, time
 
 from typing import List, Dict, Optional
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 from bs4 import BeautifulSoup
-
-from mediapipe.tasks import python
-from mediapipe.tasks.python import text
 
 from importlib.resources import as_file
 
@@ -21,14 +19,11 @@ def get_path_str(resource)->str:
     with as_file(resource) as path:
         return str(path)
     
-def fetch_embedder(path:str, l2_normalize:bool=True, quantize:bool=False):# ->text.text_embedder.TextEmbedder:
-    base_options = python.BaseOptions(model_asset_path=path)
-    options = text.TextEmbedderOptions(
-                            base_options=base_options, 
-                            l2_normalize=l2_normalize, 
-                            quantize=quantize)
-    embedder = text.TextEmbedder.create_from_options(options)
-    return embedder
+# cached: loading takes ~50ms, and the embedder keeps per-shape plans warm across searches
+@lru_cache(maxsize=1)
+def fetch_embedder(path:str, l2_normalize:bool=True):
+    from .embedder import TextEmbedder
+    return TextEmbedder(path, l2_normalize=l2_normalize)
 
 def fetch_content(url: str, timeout: int = 5) -> Optional[str]:
     """Fetch content from a URL with timeout."""
@@ -36,7 +31,11 @@ def fetch_content(url: str, timeout: int = 5) -> Optional[str]:
         start_time = time.time()
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
-        content = BeautifulSoup(response.text, "html.parser").get_text(separator=" ", strip=True)
+        # requests assumes ISO-8859-1 when the header has no charset, which mangles
+        # UTF-8 pages. Hand bs4 the bytes so it can use the page's <meta charset>.
+        declared = "charset" in response.headers.get("content-type", "").lower()
+        soup = BeautifulSoup(response.content, "html.parser", from_encoding=response.encoding if declared else None)
+        content = soup.get_text(separator=" ", strip=True)
         print(f"Fetched {url} in {time.time() - start_time:.2f}s")
         return content[:10000]  # limitting content to 10k
     except requests.RequestException as e:
